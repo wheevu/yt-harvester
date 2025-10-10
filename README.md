@@ -1,210 +1,182 @@
 # YouTube Harvester 🎬
 
-A Python tool to extract metadata, transcripts, and comments from YouTube videos into organized text or JSON files.
+A scrappy little Python tool that pulls YouTube videos apart and hands you the **good stuff** — transcripts, comments, metadata — in clean, readable files. Built because I wanted it. Sharing because maybe you do too. 😌
 
-## Features ✨
+## What It Does 🔧
 
-- **Metadata Extraction**: Get video title, channel name, and URL
-- **Transcript Harvesting**: Fetch official transcripts or auto-generated captions
-- **Comment Collection**: Extract top-liked comments with their replies
-- **Flexible Output**: Save as formatted text (.txt) or structured JSON (.json)
-- **Smart Formatting**: 
-  - Compact like counts (e.g., "1M", "343k")
-  - Clean date format (YYYY-MM-DD)
-  - Threaded comment display with replies
-- **Progress Indicators**: Visual feedback during long operations
+* 📺 **Metadata** — video title, channel name, URL
+* 📜 **Transcript** — official or auto-captions, stripped of timecodes
+* 💬 **Comments** — top-liked, threaded with replies
+* 📁 **Formats** — save as `.txt` or `.json`, up to you
+* ✨ **Clean Output** — like counts (e.g., `1.3M`), proper dates, nested replies
+* 🌀 **Progress Bar** — lets you know stuff’s happening
 
-## Installation 📦
+---
 
-### Method 1: Install as a Command-Line Tool (Recommended)
+## Install Me 🛠️
+
+### Option 1: CLI tool (recommended)
 
 ```bash
-# Clone or download this repository
-cd yt_harvester
-
-# Install in editable mode (changes reflect immediately)
 pip install -e .
-
-# Now you can use it from anywhere!
 yt-harvester "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 ```
 
-### Method 2: Direct Script Usage
+### Option 2: Just run the script
 
 ```bash
-# Install dependencies
 pip install -r requirements.txt
-
-# Run directly
 python yt_harvester.py "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 ```
 
-## Usage 🚀
+---
 
-### Basic Usage
+## Use Me 🧠
+
+### Basic
 
 ```bash
-# Using the installed command
-yt-harvester "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-
-# Or with just the video ID
-yt-harvester dQw4w9WgXcQ
+yt-harvester https://youtube.com/watch?v=dQw4w9WgXcQ
+yt-harvester dQw4w9WgXcQ  # just the ID works too
 ```
 
-### Advanced Options
+### Options
 
 ```bash
-# Get only 10 top comments
-yt-harvester dQw4w9WgXcQ -c 10
+-c 10               # Grab 10 top comments only
+-f json             # Save as JSON instead of TXT
+-o my_file.txt      # Custom output filename
+--max-comments 20000  # Pull deeper into the comment pit
+```
 
-# Output as JSON instead of text
-yt-harvester dQw4w9WgXcQ -f json
+Combine as needed:
 
-# Specify custom output filename
-yt-harvester dQw4w9WgXcQ -o my_video.txt
-
-# Download more comments (default: 10000)
-yt-harvester dQw4w9WgXcQ --max-comments 20000
-
-# Combine options
+```bash
 yt-harvester dQw4w9WgXcQ -c 5 -f json -o output.json
 ```
 
-### Command-Line Options
+### Full CLI Reference
 
 ```
-positional arguments:
-  url                   YouTube video URL or 11-character video ID
+positional:
+  url                  YouTube video URL or video ID
 
 options:
-  -h, --help            Show this help message and exit
-  -c N, --comments N    Number of top comments to include (default: 20)
-  -f {txt,json}, --format {txt,json}
-                        Output format (default: txt)
-  --max-comments N      Maximum total comments to download including replies (default: 10000)
-  -o FILE, --output FILE
-                        Output filename (default: VIDEO_ID.txt or VIDEO_ID.json)
+  -h, --help           Show help
+  -c N, --comments N   Top N comments (default: 20)
+  -f {txt,json}        Format (default: txt)
+  --max-comments N     Cap total comments/replies (default: 10000)
+  -o FILE              Custom filename
 ```
 
-## Output Format 📄
+---
 
-### Text Format (.txt)
+## Output Samples 🧾
+
+### Text
 
 ```
 ====== METADATA ======
-Title: Video Title
-Channel: Channel Name
-URL: https://www.youtube.com/watch?v=...
+Title: ...
+Channel: ...
+URL: ...
 
 ====== TRANSCRIPT ======
-[Full video transcript text...]
+...
 
 ====== COMMENTS ======
-@Username (likes: 1M) [2020-10-10]: This is the top comment!
-  ↳ @Replier (likes: 5k): Great reply!
-  ↳ @AnotherUser (likes: 100): Another reply
-
-@SecondUser (likes: 343k) [2021-05-15]: Second top comment
-  ↳ @Someone (likes: 2): A reply here
+@user (likes: 1.2M) [2024-05-01]: This video changed my life
+  ↳ @replier (likes: 2k): Same here 💯
 ```
 
-### JSON Format (.json)
+### JSON
 
 ```json
 {
-  "metadata": {
-    "Title": "Video Title",
-    "Channel": "Channel Name",
-    "URL": "https://www.youtube.com/watch?v=..."
-  },
-  "transcript": ["Full transcript text..."],
+  "metadata": {...},
+  "transcript": ["..."],
   "comments": [
     {
-      "author": "@Username",
-      "text": "Comment text",
-      "like_count": 1000000,
-      "timestamp": 1602316800,
-      "id": "comment_id",
-      "replies": [
-        {
-          "author": "@Replier",
-          "text": "Reply text",
-          "like_count": 5000,
-          "timestamp": 1602403200,
-          "id": "reply_id"
-        }
-      ]
+      "author": "@...",
+      "text": "...",
+      "like_count": 12345,
+      "replies": [...]
     }
   ]
 }
 ```
 
-## Comment Sorting Logic 🎯
+---
 
-- **Root Comments**: Top 20 (or custom count) sorted by like count (most liked first)
-- **Replies**: Up to 50 per root comment, sorted by timestamp (newest first)
+## How Comments Are Sorted 🔍
 
-## Requirements 📋
+* 🧠 Top N root comments by likes (default 20)
+* 🪆 Replies under each root, newest first (up to 50 per root)
 
-- Python 3.8 or higher
-- `yt-dlp`: For downloading video metadata and comments
-- `youtube-transcript-api`: For fetching video transcripts
+---
 
-## Development 🛠️
+## Requirements 📦
+
+* Python 3.8+
+* [`yt-dlp`](https://github.com/yt-dlp/yt-dlp)
+* [`youtube-transcript-api`](https://github.com/jdepoix/youtube-transcript-api)
+
+---
+
+## Dev Mode 👨🏻‍💻
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/yt-harvester.git
+git clone https://github.com/wheevu/yt-harvester.git
 cd yt-harvester
-
-# Install in editable mode with dependencies
 pip install -e .
-
-# Make changes to src/yt_harvester/__main__.py
-# Changes are immediately available when you run yt-harvester
+# Hack on: src/yt_harvester/__main__.py
 ```
 
-## Project Structure 📁
+### Structure
 
 ```
 yt_harvester/
-├── pyproject.toml              # Package configuration
-├── README.md                   # This file
-├── requirements.txt            # Dependencies
+├── pyproject.toml
+├── requirements.txt
 └── src/
     └── yt_harvester/
-        ├── __init__.py         # Package initialization
-        └── __main__.py         # Main script
+        ├── __init__.py
+        └── __main__.py
 ```
 
-## Troubleshooting 🔧
+---
 
-### "yt-dlp is not installed"
+## Common Errors & Fixes 😮‍💨
+
+* `ModuleNotFoundError: yt_dlp`
+
 ```bash
 pip install yt-dlp
 ```
 
-### "youtube-transcript-api not found"
+* `ModuleNotFoundError: youtube_transcript_api`
+
 ```bash
 pip install youtube-transcript-api
 ```
 
-### Command not found: yt-harvester
-Make sure you installed the package:
+* `command not found: yt-harvester`
+
 ```bash
 pip install -e .
+# Make sure your scripts dir is in PATH
 ```
 
-And ensure your Python scripts directory is in your PATH.
+---
 
-## License 📝
+## License 📜
 
-MIT License - Feel free to use and modify as needed.
+MIT. Use it, remix it, just don’t sell NFTs of it.
 
-## Contributing 🤝
+---
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+## Credits & Creator ✨
 
-## Author ✍️
+Made with questionable sleep habits by **Josh (Huy Vũ)** — just a guy from Vietnam who just wanted to make something cool and useful.
 
-Created with ❤️ for the YouTube research community.
+You found this repo? That means it worked. 😊
