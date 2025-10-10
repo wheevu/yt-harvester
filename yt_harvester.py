@@ -443,20 +443,205 @@ def save_json(output_path: str, meta: dict, transcript: List[str], comments_data
     return output_path
 
 
+def process_single_video(
+    url: str,
+    output_format: str = "txt",
+    num_comments: int = 20,
+    max_comments: int = 10000,
+    output_file: Optional[str] = None,
+    output_dir: Optional[Path] = None
+) -> Tuple[bool, str]:
+    """
+    Process a single YouTube video and save the output.
+    
+    Args:
+        url: YouTube URL or video ID
+        output_format: Output format (txt or json)
+        num_comments: Number of top comments to extract
+        max_comments: Maximum total comments to download
+        output_file: Optional specific output filename
+        output_dir: Optional output directory
+    
+    Returns:
+        Tuple of (success: bool, message: str)
+    """
+    try:
+        video_id = video_id_from_url(url)
+    except ValueError as exc:
+        return False, f"Invalid URL '{url}': {exc}"
+    
+    watch_url = build_watch_url(video_id)
+    
+    try:
+        # Fetch all data
+        metadata = fetch_metadata(video_id, watch_url)
+        transcript = fetch_transcript(video_id, watch_url)
+        structured_comments = fetch_comments(
+            video_id, 
+            watch_url, 
+            max_dl=max_comments, 
+            top_n=num_comments
+        )
+        
+        # Determine output filename
+        if output_file:
+            output_path = output_file
+        else:
+            output_path = f"{video_id}.{output_format}"
+        
+        # Prepend output directory if specified
+        if output_dir:
+            output_path = str(output_dir / output_path)
+        
+        # Save the output file
+        if output_format == "json":
+            save_json(output_path, metadata, transcript, structured_comments)
+        else:
+            formatted_comments = format_comments_for_txt(structured_comments)
+            save_txt(output_path, metadata, transcript, formatted_comments)
+        
+        # Clean up temporary files
+        cleanup_sidecar_files(video_id, (
+            ".info.json",
+            ".live_chat.json",
+            ".vtt",
+            ".srt",
+            ".en.vtt",
+            ".en-orig.vtt",
+            ".en-en.vtt",
+            ".en-de-DE.vtt",
+        ))
+        
+        # Clean up caption files
+        for pattern in [f"{video_id}*.vtt", f"{video_id}*.srt"]:
+            for file in Path(".").glob(pattern):
+                try:
+                    file.unlink()
+                except OSError:
+                    pass
+        
+        return True, f"✅ Successfully processed: {video_id} -> {output_path}"
+    
+    except Exception as exc:
+        # Clean up on error
+        try:
+            cleanup_sidecar_files(video_id, (
+                ".info.json",
+                ".live_chat.json",
+                ".vtt",
+                ".srt",
+                ".en.vtt",
+                ".en-orig.vtt",
+                ".en-en.vtt",
+                ".en-de-DE.vtt",
+            ))
+        except:
+            pass
+        
+        return False, f"❌ Failed to process '{url}': {exc}"
+
+
+def process_bulk_links(
+    links_file: str,
+    output_format: str = "txt",
+    num_comments: int = 20,
+    max_comments: int = 10000,
+    output_dir: Optional[str] = None
+) -> int:
+    """
+    Process multiple YouTube links from a file.
+    
+    Args:
+        links_file: Path to file containing YouTube URLs (one per line)
+        output_format: Output format (txt or json)
+        num_comments: Number of top comments to extract
+        max_comments: Maximum total comments to download
+        output_dir: Optional output directory
+    
+    Returns:
+        Exit code (0 for success, 1 for errors)
+    """
+    # Read links from file
+    try:
+        with open(links_file, "r", encoding="utf-8") as f:
+            links = [line.strip() for line in f if line.strip() and not line.strip().startswith("#")]
+    except FileNotFoundError:
+        print(f"❌ Error: File '{links_file}' not found.")
+        return 1
+    except Exception as exc:
+        print(f"❌ Error reading file '{links_file}': {exc}")
+        return 1
+    
+    if not links:
+        print(f"⚠️  No links found in '{links_file}'")
+        return 1
+    
+    # Create output directory if specified
+    output_path = None
+    if output_dir:
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+        print(f"📁 Output directory: {output_path}")
+    
+    print(f"📋 Found {len(links)} link(s) to process\n")
+    
+    # Process each link
+    success_count = 0
+    failed_count = 0
+    
+    for i, link in enumerate(links, 1):
+        print(f"[{i}/{len(links)}] Processing: {link}")
+        success, message = process_single_video(
+            url=link,
+            output_format=output_format,
+            num_comments=num_comments,
+            max_comments=max_comments,
+            output_dir=output_path
+        )
+        
+        print(f"    {message}")
+        
+        if success:
+            success_count += 1
+        else:
+            failed_count += 1
+        
+        # Add a small separator between videos
+        if i < len(links):
+            print()
+    
+    # Print summary
+    print("\n" + "="*60)
+    print(f"📊 SUMMARY:")
+    print(f"   Total: {len(links)}")
+    print(f"   Success: {success_count}")
+    print(f"   Failed: {failed_count}")
+    print("="*60)
+    
+    return 0 if failed_count == 0 else 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Harvest transcript and comments from a YouTube video.",
+        description="Harvest transcript and comments from a YouTube video or process multiple videos from a file.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  # Single video processing:
   python yt_harvester.py https://www.youtube.com/watch?v=dQw4w9WgXcQ
   python yt_harvester.py dQw4w9WgXcQ -c 10 -f json
   python yt_harvester.py <URL> --max-comments 5000 -o output.txt
+  
+  # Bulk processing:
+  python yt_harvester.py --bulk links.txt
+  python yt_harvester.py --bulk links.txt -f json --bulk-output-dir ./outputs
+  python yt_harvester.py --bulk links.txt -c 30 --max-comments 15000
         """
     )
     parser.add_argument(
         "url",
-        help="The URL or Video ID of the YouTube video"
+        nargs="?",
+        help="The URL or Video ID of the YouTube video (not used with --bulk)"
     )
     parser.add_argument(
         "-c", "--comments",
@@ -483,8 +668,33 @@ Examples:
         metavar="FILE",
         help="Specify an output file name. Defaults to [video_id].[format]"
     )
+    parser.add_argument(
+        "--bulk",
+        metavar="FILE",
+        help="Process multiple videos from a file (one URL per line). Comments starting with # are ignored."
+    )
+    parser.add_argument(
+        "--bulk-output-dir",
+        metavar="DIR",
+        help="Directory to save outputs when using --bulk mode. Defaults to current directory."
+    )
     
     args = parser.parse_args()
+    
+    # Bulk processing mode
+    if args.bulk:
+        print("🚀 Starting bulk processing...\n")
+        return process_bulk_links(
+            links_file=args.bulk,
+            output_format=args.format,
+            num_comments=args.comments,
+            max_comments=args.max_comments,
+            output_dir=args.bulk_output_dir
+        )
+    
+    # Single video mode
+    if not args.url:
+        parser.error("the following arguments are required: url (or use --bulk)")
     
     raw_value = args.url
     try:
