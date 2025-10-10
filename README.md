@@ -1,7 +1,14 @@
 # YouTube Harvester 🎬
 (First open-source project 🤞🏻, I don't really know if someone has made a tool like this before. Alas, here we are...)
 
-A scrappy little Python tool that pulls YouTube videos apart and hands you the **good stuff** — transcripts, comments, metadata — in clean, readable files. Built because I wanted it. Sharing because maybe you do too. 😌
+I built this scrappy little Python tool to do the grunt work. It pulls YouTube videos apart and hands you the **good stuff** — transcripts, comments, metadata — in clean, readable files. I built it for personal use, but I'm sharing it here because maybe someone might need it too. 😌
+
+## The Why Behind It 🤔
+This whole thing started during a late-night development research rabbit hole. I knew the gold wasn't just in the Youtube videos, but also buried in the comment threads— real discussions, raw feedback, unfiltered ideas. And manually copying everything would have been a nightmare.
+
+While this tool is simple, it's the first step in a bigger picture. My goal was to compile and catalog insights from my research. Once I have enough info in a clean text format, I can start feeding it into other tools to connect dots and find patterns that weren't obvious before.
+
+yt-harvester is the data collection engine for that bigger mission. It turns messy web pages into neat, analyzable data.
 
 ## What It Does 🔧
 
@@ -60,9 +67,9 @@ Create a text file with one YouTube URL per line:
 
 ```
 # links.txt
-https://www.youtube.com/watch?v=dQw4w9WgXcQ
-https://www.youtube.com/watch?v=jNQXAC9IVRw
-youtu.be/9bZkp7q19f0
+https://www.youtube.com/watch?v=ZncbtRo7RXs
+https://www.youtube.com/watch?v=Q3K0TOvTOno
+https://youtu.be/g2X2LdJAIpU
 # Lines starting with # are ignored
 ```
 
@@ -126,7 +133,7 @@ URL: ...
 ...
 
 ====== COMMENTS ======
-@user (likes: 1.2M) [2024-05-01]: This video changed my life
+@user (likes: 2.2M) [2022-07-22]: This video changed my life
   ↳ @replier (likes: 2k): Same here 💯
 ```
 
@@ -218,6 +225,4 @@ Use it, remix it, just don’t sell NFTs of it (without me).
 
 ## Credits & Creator ✨
 
-Made with questionable sleep habits by **Josh (Huy Vũ)** — just a guy from Vietnam who just wanted to make something cool and useful.
-
-You found this repo? That means it worked. 😊
+Made with questionable sleep habits by **Josh** 😉
