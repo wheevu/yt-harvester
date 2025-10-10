@@ -1,6 +1,6 @@
 # YouTube Harvester 🎬
 
-A professional Python tool to extract metadata, transcripts, and comments from YouTube videos into organized text or JSON files.
+A Python tool to extract metadata, transcripts, and comments from YouTube videos into organized text or JSON files.
 
 ## Features ✨
 
