@@ -1,4 +1,5 @@
 # YouTube Harvester 🎬
+(First open-source project 🤞🏻, I don't really know if someone has made a tool like this before. Alas, here we are...)
 
 A scrappy little Python tool that pulls YouTube videos apart and hands you the **good stuff** — transcripts, comments, metadata — in clean, readable files. Built because I wanted it. Sharing because maybe you do too. 😌
 
@@ -178,7 +179,7 @@ pip install -e .
 
 ## License 📜
 
-MIT. Use it, remix it, just don’t sell NFTs of it.
+Use it, remix it, just don’t sell NFTs of it (without me).
 
 ---
 
