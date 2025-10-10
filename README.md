@@ -15,14 +15,21 @@ A scrappy little Python tool that pulls YouTube videos apart and hands you the *
 
 ## Install Me 🛠️
 
-### Option 1: CLI tool (recommended)
+### Step 1: Clone the Repo
+
+```bash
+git clone https://github.com/wheevu/yt-harvester.git
+cd yt-harvester
+```
+
+### Option 1: Install as CLI Tool (Recommended)
 
 ```bash
 pip install -e .
 yt-harvester "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 ```
 
-### Option 2: Just run the script
+### Option 2: Run Directly
 
 ```bash
 pip install -r requirements.txt
