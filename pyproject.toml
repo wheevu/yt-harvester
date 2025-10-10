@@ -1,0 +1,41 @@
+# pyproject.toml
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yt-harvester"
+version = "0.1.0"
+description = "A tool to extract transcripts and comments from YouTube videos."
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+keywords = ["youtube", "transcript", "comments", "harvester", "scraper"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "yt-dlp",
+    "youtube-transcript-api",
+]
+
+[project.scripts]
+# This creates the 'yt-harvester' command
+# It will execute the main() function from yt_harvester/__main__.py
+yt-harvester = "yt_harvester.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/yourusername/yt-harvester"
+Repository = "https://github.com/yourusername/yt-harvester.git"
+Issues = "https://github.com/yourusername/yt-harvester/issues"

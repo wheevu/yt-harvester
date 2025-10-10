@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Output files (test outputs)
+*.txt
+*.json
+!requirements.txt
+!pyproject.toml
+!src/**/*.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files from yt-dlp
+*.info.json
+*.live_chat.json
+*.vtt
+*.srt
+*.webm
+*.mp4
+*.m4a
+
+# Distribution
+dist/
+build/
