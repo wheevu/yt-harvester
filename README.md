@@ -12,12 +12,13 @@ yt-harvester is the data collection engine for that bigger mission. It turns mes
 
 ## What It Does 🔧
 
-* 📺 **Metadata** — video title, channel name, URL
+* 📺 **Metadata** — video title, channel, views, upload date, tags
 * 📜 **Transcript** — official or auto-captions, stripped of timecodes
 * 💬 **Comments** — top-liked, threaded with replies
+* 🧠 **Analysis** — sentiment scores & keyword extraction
 * 📁 **Formats** — save as `.txt` or `.json`, up to you
 * ✨ **Clean Output** — like counts (e.g., `1.3M`), proper dates, nested replies
-* 🌀 **Progress Bar** — lets you know stuff’s happening
+* 🌀 **Progress Bar** — detailed step-by-step progress & parallel bulk processing
 
 ---
 
@@ -168,6 +169,9 @@ URL: ...
 * Python 3.8+
 * [`yt-dlp`](https://github.com/yt-dlp/yt-dlp)
 * [`youtube-transcript-api`](https://github.com/jdepoix/youtube-transcript-api)
+* `tqdm` (for progress bars)
+* `textblob` (for sentiment analysis)
+* `pyyaml` (for config)
 
 ---
 
@@ -189,7 +193,12 @@ yt_harvester/
 └── src/
     └── yt_harvester/
         ├── __init__.py
-        └── __main__.py
+        ├── __main__.py
+        ├── cli.py
+        ├── config.py
+        ├── downloader.py
+        ├── processor.py
+        └── utils.py
 ```
 
 ---
@@ -220,9 +229,3 @@ pip install -e .
 ## License 📜
 
 Use it, remix it, just don’t sell NFTs of it (without me).
-
----
-
-## Credits & Creator ✨
-
-Made with questionable sleep habits by **Josh** 😉
