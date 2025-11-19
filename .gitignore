@@ -35,7 +35,8 @@ ENV/
 *~
 
 # Output files (test outputs)
-*.txt
+# *.txt
+!test_links.txt
 *.json
 !requirements.txt
 !pyproject.toml

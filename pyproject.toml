@@ -28,6 +28,9 @@ classifiers = [
 dependencies = [
     "yt-dlp",
     "youtube-transcript-api",
+    "tqdm",
+    "textblob",
+    "pyyaml"
 ]
 
 [project.scripts]
