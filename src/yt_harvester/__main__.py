@@ -10,6 +10,21 @@ from .utils import video_id_from_url, build_watch_url, cleanup_sidecar_files, fo
 from .downloader import fetch_metadata, fetch_transcript, fetch_comments
 from .processor import analyze_sentiment, extract_keywords
 
+YOUTUBE_HARVESTER_BANNER = r"""
+________________________________________________________________________________
+________________________________________________________________________________
+
+__   __            _         _          _    _                           _
+\ \ / /__  _   _  | |_ _   _| |__   ___| |  | | __ _ _ ____   _____  ___| |_ ___ _ __
+ \ V / _ \| | | | | __| | | | '_ \ / _ \ |  | |/ _` | '__\ \ / / _ \/ __| __/ _ \ '__|
+  | | (_) | |_| | | |_| |_| | |_) |  __/ |  | | (_| | |   \ V /  __/\__ \ ||  __/ |
+  |_|\___/ \__,_|  \__|\__,_|_.__/ \___|_|  |_|\__,_|_|    \_/ \___||___/\__\___|_|
+
+Welcome to YouTube Harvester!
+________________________________________________________________________________
+________________________________________________________________________________
+""".strip("\n")
+
 def format_comments_for_txt(structured_comments):
     """
     Format structured comment data into text lines for display.
@@ -175,6 +190,7 @@ def process_single_video(url, args, output_dir=None, pbar=None, progress_callbac
         return False, f"❌ {video_id}: {exc}"
 
 def main():
+    print(YOUTUBE_HARVESTER_BANNER)
     args = parse_args()
     config = load_config()
     
