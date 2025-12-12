@@ -1,24 +1,20 @@
 # YouTube Harvester 🎬
-(First open-source project 🤞🏻, I don't really know if someone has made a tool like this before. Alas, here we are...)
 
-I built this scrappy little Python tool to do the grunt work. It pulls YouTube videos apart and hands you the **good stuff** — transcripts, comments, metadata — in clean, readable files. I built it for personal use, but I'm sharing it here because maybe someone might need it too. 😌
+<img src="./asset/banner.png">
 
-## The Why Behind It 🤔
-This whole thing started during a late-night development research rabbit hole. I knew the gold wasn't just in the Youtube videos, but also buried in the comment threads— real discussions, raw feedback, unfiltered ideas. And manually copying everything would have been a nightmare.
+(First open-source project 🤞🏻)
 
-While this tool is simple, it's the first step in a bigger picture. My goal was to compile and catalog insights from my research. Once I have enough info in a clean text format, I can start feeding it into other tools to connect dots and find patterns that weren't obvious before.
-
-yt-harvester is the data collection engine for that bigger mission. It turns messy web pages into neat, analyzable data.
+I built this scrappy little Python tool to do the grunt work. It pulls YouTube videos apart and hands you the **good stuff** — transcripts, comments, metadata — in clean, readable files. 😌
 
 ## What It Does 🔧
 
-* 📺 **Metadata** — video title, channel, views, upload date, tags
-* 📜 **Transcript** — official or auto-captions, stripped of timecodes
-* 💬 **Comments** — top-liked, threaded with replies
-* 🧠 **Analysis** — sentiment scores & keyword extraction
-* 📁 **Formats** — save as `.txt` or `.json`, up to you
-* ✨ **Clean Output** — like counts (e.g., `1.3M`), proper dates, nested replies
-* 🌀 **Progress Bar** — detailed step-by-step progress & parallel bulk processing
+- 📺 **Metadata** — video title, channel, views, upload date, tags
+- 📜 **Transcript** — official or auto-captions, stripped of timecodes
+- 💬 **Comments** — top-liked, threaded with replies
+- 🧠 **Analysis** — sentiment scores & keyword extraction
+- 📁 **Formats** — save as `.txt` or `.json`, up to you
+- ✨ **Clean Output** — like counts (e.g., `1.3M`), proper dates, nested replies
+- 🌀 **Progress Bar** — detailed step-by-step progress & parallel bulk processing
 
 ---
 
@@ -159,19 +155,19 @@ URL: ...
 
 ## How Comments Are Sorted 🔍
 
-* 🧠 Top N root comments by likes (default 20)
-* 🪆 Replies under each root, newest first (up to 50 per root)
+- 🧠 Top N root comments by likes (default 20)
+- 🪆 Replies under each root, newest first (up to 50 per root)
 
 ---
 
 ## Requirements 📦
 
-* Python 3.8+
-* [`yt-dlp`](https://github.com/yt-dlp/yt-dlp)
-* [`youtube-transcript-api`](https://github.com/jdepoix/youtube-transcript-api)
-* `tqdm` (for progress bars)
-* `textblob` (for sentiment analysis)
-* `pyyaml` (for config)
+- Python 3.8+
+- [`yt-dlp`](https://github.com/yt-dlp/yt-dlp)
+- [`youtube-transcript-api`](https://github.com/jdepoix/youtube-transcript-api)
+- `tqdm` (for progress bars)
+- `textblob` (for sentiment analysis)
+- `pyyaml` (for config)
 
 ---
 
@@ -205,27 +201,21 @@ yt_harvester/
 
 ## Common Errors & Fixes 😮‍💨
 
-* `ModuleNotFoundError: yt_dlp`
+- `ModuleNotFoundError: yt_dlp`
 
 ```bash
 pip install yt-dlp
 ```
 
-* `ModuleNotFoundError: youtube_transcript_api`
+- `ModuleNotFoundError: youtube_transcript_api`
 
 ```bash
 pip install youtube-transcript-api
 ```
 
-* `command not found: yt-harvester`
+- `command not found: yt-harvester`
 
 ```bash
 pip install -e .
 # Make sure your scripts dir is in PATH
 ```
-
----
-
-## License 📜
-
-Use it, remix it, just don’t sell NFTs of it (without me).
