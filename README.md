@@ -16,6 +16,11 @@ I built this scrappy little Python tool to do the grunt work. It pulls YouTube v
 - ✨ **Clean Output** — like counts (e.g., `1.3M`), proper dates, nested replies
 - 🌀 **Progress Bar** — detailed step-by-step progress & parallel bulk processing
 
+<p align=center>
+<img src="./asset/metadata-analysis-transcript.png" width=60%>
+<img src="./asset/comments.png"width=60%>
+</p>
+
 ---
 
 ## Install Me 🛠️
