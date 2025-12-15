@@ -72,75 +72,94 @@ def format_comments_for_txt(structured_comments):
     
     return rendered_threads if rendered_threads else ["(No comments found.)"]
 
-def save_txt(output_path, meta, transcript, comments, sentiment=None, keywords=None):
-    transcript_lines = transcript or ["(Transcript unavailable.)"]
+def save_txt(output_path, meta, transcript, comments, sentiment=None, keywords=None, comments_only=False):
     comment_lines = comments or ["(Comments unavailable.)"]
 
     with open(output_path, "w", encoding="utf-8") as handle:
-        handle.write("====== METADATA ======\n")
-        handle.write(f"Title: {meta.get('Title', '(Unknown title)')}\n")
-        handle.write(f"Channel: {meta.get('Channel', '(Unknown channel)')}\n")
-        handle.write(f"URL: {meta.get('URL', '')}\n")
-        if meta.get("ViewCount"):
-            handle.write(f"Views: {format_like_count(meta['ViewCount'])}\n")
-        if meta.get("UploadDate"):
-            handle.write(f"Uploaded: {meta['UploadDate']}\n")
-        handle.write("\n")
-
-        if sentiment or keywords:
-            handle.write("====== ANALYSIS ======\n")
-            if sentiment:
-                handle.write(f"Sentiment: Polarity={sentiment['polarity']:.2f}, Subjectivity={sentiment['subjectivity']:.2f}\n")
-            if keywords:
-                handle.write(f"Keywords: {', '.join(keywords)}\n")
+        if not comments_only:
+            # Full mode: include metadata, analysis, and transcript
+            transcript_lines = transcript or ["(Transcript unavailable.)"]
+            
+            handle.write("====== METADATA ======\n")
+            handle.write(f"Title: {meta.get('Title', '(Unknown title)')}\n")
+            handle.write(f"Channel: {meta.get('Channel', '(Unknown channel)')}\n")
+            handle.write(f"URL: {meta.get('URL', '')}\n")
+            if meta.get("ViewCount"):
+                handle.write(f"Views: {format_like_count(meta['ViewCount'])}\n")
+            if meta.get("UploadDate"):
+                handle.write(f"Uploaded: {meta['UploadDate']}\n")
             handle.write("\n")
 
-        handle.write("====== TRANSCRIPT ======\n")
-        handle.write("\n\n".join(transcript_lines).strip() + "\n\n")
+            if sentiment or keywords:
+                handle.write("====== ANALYSIS ======\n")
+                if sentiment:
+                    handle.write(f"Sentiment: Polarity={sentiment['polarity']:.2f}, Subjectivity={sentiment['subjectivity']:.2f}\n")
+                if keywords:
+                    handle.write(f"Keywords: {', '.join(keywords)}\n")
+                handle.write("\n")
+
+            handle.write("====== TRANSCRIPT ======\n")
+            handle.write("\n\n".join(transcript_lines).strip() + "\n\n")
 
         handle.write("====== COMMENTS ======\n")
         handle.write("\n".join(comment_lines).strip() + "\n")
 
     return output_path
 
-def save_json(output_path, meta, transcript, comments, sentiment=None, keywords=None):
-    full_data = {
-        "metadata": meta,
-        "analysis": {
-            "sentiment": sentiment,
-            "keywords": keywords
-        },
-        "transcript": transcript,
-        "comments": comments
-    }
+def save_json(output_path, meta, transcript, comments, sentiment=None, keywords=None, comments_only=False):
+    if comments_only:
+        # Comments-only mode: just output comments array
+        full_data = {"comments": comments}
+    else:
+        # Full mode: include all sections
+        full_data = {
+            "metadata": meta,
+            "analysis": {
+                "sentiment": sentiment,
+                "keywords": keywords
+            },
+            "transcript": transcript,
+            "comments": comments
+        }
     with open(output_path, "w", encoding="utf-8") as handle:
         json.dump(full_data, handle, indent=2, ensure_ascii=False)
     return output_path
 
-def save_csv(output_path, video_id, structured_comments):
+def save_csv(output_path, video_id, structured_comments, append=False):
     """
     Save comments as a flat CSV file for easy import into Google Sheets or Pandas.
     
-    Headers: comment_id, video_id, comment_text, like_count, is_reply, parent_comment_id
+    Headers: comment_id, video_id, author, comment_text, like_count, timestamp, is_reply, parent_comment_id
+    
+    Args:
+        append: If True, append to existing file without writing headers (for bulk mode)
     """
-    with open(output_path, "w", encoding="utf-8", newline="") as handle:
+    mode = "a" if append else "w"
+    write_header = not append
+    
+    with open(output_path, mode, encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle)
-        writer.writerow([
-            "comment_id",
-            "video_id", 
-            "comment_text",
-            "like_count",
-            "is_reply",
-            "parent_comment_id"
-        ])
+        if write_header:
+            writer.writerow([
+                "comment_id",
+                "video_id",
+                "author",
+                "comment_text",
+                "like_count",
+                "timestamp",
+                "is_reply",
+                "parent_comment_id"
+            ])
         
         for comment in structured_comments:
             # Write the root comment
             writer.writerow([
                 comment.get("id", ""),
                 video_id,
+                comment.get("author", ""),
                 comment.get("text", ""),
                 comment.get("like_count", 0),
+                comment.get("timestamp", ""),
                 "false",
                 ""
             ])
@@ -151,13 +170,51 @@ def save_csv(output_path, video_id, structured_comments):
                 writer.writerow([
                     reply.get("id", ""),
                     video_id,
+                    reply.get("author", ""),
                     reply.get("text", ""),
                     reply.get("like_count", 0),
+                    reply.get("timestamp", ""),
                     "true",
                     parent_id
                 ])
     
     return output_path
+
+def process_single_video_for_bulk_csv(url, args, pbar=None):
+    """
+    Process a video and return comments data for bulk CSV mode.
+    Returns: (success, message, (video_id, structured_comments) or None)
+    """
+    try:
+        video_id = video_id_from_url(url)
+    except ValueError as exc:
+        return False, f"Invalid URL '{url}': {exc}", None
+    
+    watch_url = build_watch_url(video_id)
+    comment_sort = getattr(args, 'comment_sort', 'top')
+    
+    if pbar: pbar.set_description(f"Processing {video_id}")
+
+    try:
+        structured_comments = fetch_comments(
+            video_id, 
+            watch_url, 
+            max_dl=args.max_comments, 
+            top_n=args.comments,
+            comment_sort=comment_sort
+        )
+        
+        # Cleanup
+        cleanup_sidecar_files(video_id, (
+            ".info.json", ".live_chat.json", ".vtt", ".srt", 
+            ".en.vtt", ".en-orig.vtt", ".en-en.vtt", ".en-de-DE.vtt"
+        ))
+        
+        return True, f"✅ {video_id}", (video_id, structured_comments)
+
+    except Exception as exc:
+        return False, f"❌ {video_id}: {exc}", None
+
 
 def process_single_video(url, args, output_dir=None, pbar=None, progress_callback=None):
     try:
@@ -194,10 +251,7 @@ def process_single_video(url, args, output_dir=None, pbar=None, progress_callbac
             # 2. Transcript
             if progress_callback: progress_callback("Fetching transcript...")
             transcript = fetch_transcript(video_id, watch_url)
-        else:
-            # Skip metadata and transcript in comments-only mode
-            if progress_callback: progress_callback("Skipping metadata...")
-            if progress_callback: progress_callback("Skipping transcript...")
+        # In comments-only mode, skip metadata and transcript silently (no progress update)
         
         # 3. Comments (always fetch)
         if progress_callback: progress_callback("Fetching comments...")
@@ -217,18 +271,17 @@ def process_single_video(url, args, output_dir=None, pbar=None, progress_callbac
                 sentiment = analyze_sentiment(full_text)
             if not args.no_keywords:
                 keywords = extract_keywords(full_text)
-        else:
-            if progress_callback: progress_callback("Skipping analysis...")
+        # In comments-only mode, skip analysis silently (no progress update)
 
         # 5. Save
         if progress_callback: progress_callback("Saving output...")
         if args.format == "csv":
             save_csv(output_path, video_id, structured_comments)
         elif args.format == "json":
-            save_json(output_path, metadata, transcript, structured_comments, sentiment, keywords)
+            save_json(output_path, metadata, transcript, structured_comments, sentiment, keywords, comments_only)
         else:
             formatted_comments = format_comments_for_txt(structured_comments)
-            save_txt(output_path, metadata, transcript, formatted_comments, sentiment, keywords)
+            save_txt(output_path, metadata, transcript, formatted_comments, sentiment, keywords, comments_only)
         
         # Cleanup
         cleanup_sidecar_files(video_id, (
@@ -275,20 +328,45 @@ def main():
         success_count = 0
         failed_count = 0
         
-        with ThreadPoolExecutor(max_workers=4) as executor:
+        # For CSV format in bulk mode, create a combined file
+        if args.format == "csv":
+            combined_csv_path = (output_dir / "comments.csv") if output_dir else Path("comments.csv")
+            # Initialize CSV with headers
+            save_csv(combined_csv_path, "", [], append=False)
+            
+            # Process sequentially to avoid race conditions when appending
             with tqdm(total=len(links), unit="video") as pbar:
-                futures = {executor.submit(process_single_video, link, args, output_dir, pbar): link for link in links}
-                
-                for future in as_completed(futures):
-                    success, msg = future.result()
-                    if success:
+                for link in links:
+                    success, msg, comments_data = process_single_video_for_bulk_csv(link, args, pbar)
+                    if success and comments_data:
+                        video_id, structured_comments = comments_data
+                        save_csv(combined_csv_path, video_id, structured_comments, append=True)
                         success_count += 1
                     else:
                         failed_count += 1
                         tqdm.write(msg)
                     pbar.update(1)
+            
+            print(f"\n📊 Done! Success: {success_count}, Failed: {failed_count}")
+            if success_count > 0:
+                print(f"📁 Combined CSV: {combined_csv_path}")
+        else:
+            # For other formats, use parallel processing with separate files
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                with tqdm(total=len(links), unit="video") as pbar:
+                    futures = {executor.submit(process_single_video, link, args, output_dir, pbar): link for link in links}
+                    
+                    for future in as_completed(futures):
+                        success, msg = future.result()
+                        if success:
+                            success_count += 1
+                        else:
+                            failed_count += 1
+                            tqdm.write(msg)
+                        pbar.update(1)
+            
+            print(f"\n📊 Done! Success: {success_count}, Failed: {failed_count}")
         
-        print(f"\n📊 Done! Success: {success_count}, Failed: {failed_count}")
         return 0 if failed_count == 0 else 1
 
     else:
@@ -299,8 +377,13 @@ def main():
             print("   Or use --bulk <file> for batch processing.")
             return 1
         
+        # Adjust progress bar steps based on mode
+        # Full mode: metadata → transcript → comments → analysis → save (5 steps)
+        # Comments-only: comments → save (2 steps)
+        total_steps = 2 if args.comments_only else 5
+        
         # Single video with detailed progress bar
-        with tqdm(total=5, bar_format="{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} [{elapsed}]") as pbar:
+        with tqdm(total=total_steps, bar_format="{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} [{elapsed}]") as pbar:
             def update_progress(desc):
                 pbar.set_description_str(desc)
                 pbar.update(1)
@@ -308,8 +391,8 @@ def main():
             success, msg = process_single_video(args.url, args, progress_callback=update_progress)
             
             # Ensure bar completes if successful
-            if success and pbar.n < 5:
-                pbar.update(5 - pbar.n)
+            if success and pbar.n < total_steps:
+                pbar.update(total_steps - pbar.n)
                 
         print(msg)
         return 0 if success else 1

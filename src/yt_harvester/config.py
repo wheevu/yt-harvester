@@ -4,8 +4,8 @@ from typing import Dict, Any
 
 DEFAULT_CONFIG = {
     "comments": {
-        "top_n": 20,
-        "max_download": 10000
+        "top_n": 80,
+        "max_download": 20000
     },
     "output": {
         "format": "txt",

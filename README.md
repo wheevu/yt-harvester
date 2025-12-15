@@ -177,10 +177,12 @@ URL: ...
 ### CSV (Flat Comments)
 
 ```csv
-comment_id,video_id,comment_text,like_count,is_reply,parent_comment_id
-Ugw123...,dQw4w9WgXcQ,This video changed my life,22000,false,
-Ugw456...,dQw4w9WgXcQ,Same here 💯,2000,true,Ugw123...
+comment_id,video_id,author,comment_text,like_count,timestamp,is_reply,parent_comment_id
+Ugw123...,dQw4w9WgXcQ,@user,This video changed my life,22000,1658505600,false,
+Ugw456...,dQw4w9WgXcQ,@replier,Same here 💯,2000,1658506000,true,Ugw123...
 ```
+
+**Bulk CSV mode:** Creates a single combined `comments.csv` file with all comments from all videos.
 
 ---
 

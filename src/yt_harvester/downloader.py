@@ -15,7 +15,11 @@ StructuredComments = List[CommentDict]
 
 def fetch_metadata(video_id: str, watch_url: str) -> dict:
     """Fetch video title and channel via yt-dlp; fall back to placeholders."""
-    ydl_opts = {"quiet": True, "skip_download": True}
+    ydl_opts = {
+        "quiet": True,
+        "skip_download": True,
+        "extractor_args": {"youtube": {"player_client": ["default"]}},
+    }
     info = {}
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -65,6 +69,8 @@ def try_auto_captions(video_id: str, watch_url: str) -> List[str]:
         "--sub-langs",
         "en.*,en",
         "--no-write-playlist-metafiles",
+        "--extractor-args",
+        "youtube:player_client=default",
         "-o",
         output_pattern,
         watch_url,
@@ -115,8 +121,8 @@ def fetch_transcript(video_id: str, watch_url: str) -> List[str]:
 def fetch_comments(
     video_id: str, 
     watch_url: str, 
-    max_dl: int = 10000, 
-    top_n: int = 20,
+    max_dl: int = 20000, 
+    top_n: int = 80,
     comment_sort: str = "top"
 ) -> StructuredComments:
     """
@@ -132,7 +138,7 @@ def fetch_comments(
         "--write-comments",
         "--write-info-json",
         "--extractor-args",
-        f"youtube:max_comments={max_dl};comment_sort={comment_sort}",
+        f"youtube:max_comments={max_dl};comment_sort={comment_sort};player_client=default",
         "--no-write-playlist-metafiles",
         "-o",
         f"{video_id}.%(ext)s",
