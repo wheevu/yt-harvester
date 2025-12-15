@@ -116,10 +116,14 @@ def fetch_comments(
     video_id: str, 
     watch_url: str, 
     max_dl: int = 10000, 
-    top_n: int = 20
+    top_n: int = 20,
+    comment_sort: str = "top"
 ) -> StructuredComments:
     """
     Fetch comments via yt-dlp and return structured data. Does NOT clean up files - caller must do cleanup.
+    
+    Args:
+        comment_sort: 'top' (most liked) or 'newest' (chronological)
     """
     info_json_path = Path(f"{video_id}.info.json")
     cmd = [
@@ -128,7 +132,7 @@ def fetch_comments(
         "--write-comments",
         "--write-info-json",
         "--extractor-args",
-        f"youtube:max_comments={max_dl};comment_sort=top",
+        f"youtube:max_comments={max_dl};comment_sort={comment_sort}",
         "--no-write-playlist-metafiles",
         "-o",
         f"{video_id}.%(ext)s",
@@ -168,8 +172,13 @@ def fetch_comments(
             return int(value)
         return 0
 
-    # Sort root comments by like count (descending) and take top_n
-    roots.sort(key=lambda c: normalise_likes(c.get("like_count")), reverse=True)
+    # Sort root comments based on comment_sort parameter
+    if comment_sort == "newest":
+        # Sort by timestamp (newest first) to preserve chronological order
+        roots.sort(key=lambda c: c.get("timestamp", 0), reverse=True)
+    else:
+        # Default: sort by like count (most liked first)
+        roots.sort(key=lambda c: normalise_likes(c.get("like_count")), reverse=True)
     top_roots = roots[:top_n]
     
     # Build structured comment data

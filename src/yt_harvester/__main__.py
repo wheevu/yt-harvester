@@ -1,5 +1,6 @@
 import sys
 import json
+import csv
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
@@ -116,6 +117,48 @@ def save_json(output_path, meta, transcript, comments, sentiment=None, keywords=
         json.dump(full_data, handle, indent=2, ensure_ascii=False)
     return output_path
 
+def save_csv(output_path, video_id, structured_comments):
+    """
+    Save comments as a flat CSV file for easy import into Google Sheets or Pandas.
+    
+    Headers: comment_id, video_id, comment_text, like_count, is_reply, parent_comment_id
+    """
+    with open(output_path, "w", encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow([
+            "comment_id",
+            "video_id", 
+            "comment_text",
+            "like_count",
+            "is_reply",
+            "parent_comment_id"
+        ])
+        
+        for comment in structured_comments:
+            # Write the root comment
+            writer.writerow([
+                comment.get("id", ""),
+                video_id,
+                comment.get("text", ""),
+                comment.get("like_count", 0),
+                "false",
+                ""
+            ])
+            
+            # Write all replies
+            parent_id = comment.get("id", "")
+            for reply in comment.get("replies", []):
+                writer.writerow([
+                    reply.get("id", ""),
+                    video_id,
+                    reply.get("text", ""),
+                    reply.get("like_count", 0),
+                    "true",
+                    parent_id
+                ])
+    
+    return output_path
+
 def process_single_video(url, args, output_dir=None, pbar=None, progress_callback=None):
     try:
         video_id = video_id_from_url(url)
@@ -123,6 +166,8 @@ def process_single_video(url, args, output_dir=None, pbar=None, progress_callbac
         return False, f"Invalid URL '{url}': {exc}"
     
     watch_url = build_watch_url(video_id)
+    comments_only = getattr(args, 'comments_only', False)
+    comment_sort = getattr(args, 'comment_sort', 'top')
     
     # Determine output path early
     if args.output:
@@ -136,37 +181,50 @@ def process_single_video(url, args, output_dir=None, pbar=None, progress_callbac
     if pbar: pbar.set_description(f"Processing {video_id}")
 
     try:
-        # 1. Metadata
-        if progress_callback: progress_callback("Fetching metadata...")
-        metadata = fetch_metadata(video_id, watch_url)
+        metadata = {}
+        transcript = []
+        sentiment = None
+        keywords = None
         
-        # 2. Transcript
-        if progress_callback: progress_callback("Fetching transcript...")
-        transcript = fetch_transcript(video_id, watch_url)
+        if not comments_only:
+            # 1. Metadata
+            if progress_callback: progress_callback("Fetching metadata...")
+            metadata = fetch_metadata(video_id, watch_url)
+            
+            # 2. Transcript
+            if progress_callback: progress_callback("Fetching transcript...")
+            transcript = fetch_transcript(video_id, watch_url)
+        else:
+            # Skip metadata and transcript in comments-only mode
+            if progress_callback: progress_callback("Skipping metadata...")
+            if progress_callback: progress_callback("Skipping transcript...")
         
-        # 3. Comments
+        # 3. Comments (always fetch)
         if progress_callback: progress_callback("Fetching comments...")
         structured_comments = fetch_comments(
             video_id, 
             watch_url, 
             max_dl=args.max_comments, 
-            top_n=args.comments
+            top_n=args.comments,
+            comment_sort=comment_sort
         )
         
-        # 4. Analysis
-        if progress_callback: progress_callback("Analyzing content...")
-        sentiment = None
-        keywords = None
-        
-        full_text = " ".join(transcript)
-        if not args.no_sentiment:
-            sentiment = analyze_sentiment(full_text)
-        if not args.no_keywords:
-            keywords = extract_keywords(full_text)
+        # 4. Analysis (skip in comments-only mode)
+        if not comments_only:
+            if progress_callback: progress_callback("Analyzing content...")
+            full_text = " ".join(transcript)
+            if not args.no_sentiment:
+                sentiment = analyze_sentiment(full_text)
+            if not args.no_keywords:
+                keywords = extract_keywords(full_text)
+        else:
+            if progress_callback: progress_callback("Skipping analysis...")
 
         # 5. Save
         if progress_callback: progress_callback("Saving output...")
-        if args.format == "json":
+        if args.format == "csv":
+            save_csv(output_path, video_id, structured_comments)
+        elif args.format == "json":
             save_json(output_path, metadata, transcript, structured_comments, sentiment, keywords)
         else:
             formatted_comments = format_comments_for_txt(structured_comments)
@@ -234,6 +292,13 @@ def main():
         return 0 if failed_count == 0 else 1
 
     else:
+        # Single video mode - validate URL is provided
+        if not args.url:
+            print("❌ Error: Please provide a YouTube URL or video ID.")
+            print("   Usage: yt-harvester <URL>")
+            print("   Or use --bulk <file> for batch processing.")
+            return 1
+        
         # Single video with detailed progress bar
         with tqdm(total=5, bar_format="{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} [{elapsed}]") as pbar:
             def update_progress(desc):

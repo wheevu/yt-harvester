@@ -30,9 +30,9 @@ Examples:
     )
     parser.add_argument(
         "-f", "--format",
-        choices=["txt", "json"],
+        choices=["txt", "json", "csv"],
         default=DEFAULT_CONFIG["output"]["format"],
-        help=f"Output format. Default: {DEFAULT_CONFIG['output']['format']}"
+        help=f"Output format (csv outputs flat comments only). Default: {DEFAULT_CONFIG['output']['format']}"
     )
     parser.add_argument(
         "--max-comments",
@@ -65,6 +65,17 @@ Examples:
         "--no-keywords",
         action="store_true",
         help="Disable keyword extraction."
+    )
+    parser.add_argument(
+        "--comment-sort",
+        choices=["top", "newest"],
+        default="top",
+        help="Comment sort order: 'top' (most liked) or 'newest' (chronological). Default: top"
+    )
+    parser.add_argument(
+        "--comments-only",
+        action="store_true",
+        help="Only fetch comments, skip metadata, transcript, and analysis. Much faster."
     )
     
     return parser.parse_args()

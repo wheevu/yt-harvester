@@ -12,7 +12,8 @@ I built this scrappy little Python tool to do the grunt work. It pulls YouTube v
 - 📜 **Transcript** — official or auto-captions, stripped of timecodes
 - 💬 **Comments** — top-liked, threaded with replies
 - 🧠 **Analysis** — sentiment scores & keyword extraction
-- 📁 **Formats** — save as `.txt` or `.json`, up to you
+- 📁 **Formats** — save as `.txt`, `.json`, or `.csv` (flat comments for Sheets/Pandas)
+- ⚡ **Comments-Only Mode** — skip metadata/transcript for 5-10x faster harvesting
 - ✨ **Clean Output** — like counts (e.g., `1.3M`), proper dates, nested replies
 - 🌀 **Progress Bar** — detailed step-by-step progress & parallel bulk processing
 
@@ -87,10 +88,13 @@ yt-harvester --bulk links.txt -f json --bulk-output-dir ./results -c 30
 ```bash
 -c 10               # Grab 10 top comments only
 -f json             # Save as JSON instead of TXT
+-f csv              # Flat CSV for Google Sheets / Pandas
 -o my_file.txt      # Custom output filename (single video only)
 --max-comments 20000  # Pull deeper into the comment pit
 --bulk FILE         # Process multiple videos from file
 --bulk-output-dir DIR  # Output directory for bulk mode
+--comment-sort newest  # Chronological order (default: top)
+--comments-only     # Skip metadata/transcript/analysis (fast mode)
 ```
 
 Combine as needed:
@@ -103,6 +107,18 @@ yt-harvester dQw4w9WgXcQ -c 5 -f json -o output.json
 yt-harvester --bulk my_videos.txt -c 15 -f json --bulk-output-dir ./downloads
 ```
 
+### Fast Dataset Building
+
+For building large comment datasets quickly:
+
+```bash
+# Fastest: comments-only + newest sort + CSV output
+yt-harvester VIDEO_URL --comments-only --comment-sort newest -f csv -c 100
+
+# Bulk harvest for dataset building
+yt-harvester --bulk links.txt --comments-only --comment-sort newest -f csv --max-comments 5000
+```
+
 ### Full CLI Reference
 
 ```
@@ -112,11 +128,13 @@ positional:
 options:
   -h, --help           Show help
   -c N, --comments N   Top N comments (default: 20)
-  -f {txt,json}        Format (default: txt)
+  -f {txt,json,csv}    Format (default: txt)
   --max-comments N     Cap total comments/replies (default: 10000)
   -o FILE              Custom filename (single video only)
   --bulk FILE          Process multiple videos from file (one URL per line)
   --bulk-output-dir DIR  Output directory for bulk mode
+  --comment-sort {top,newest}  Sort by likes or chronological (default: top)
+  --comments-only      Skip metadata/transcript/analysis for speed
 ```
 
 ---
@@ -156,11 +174,20 @@ URL: ...
 }
 ```
 
+### CSV (Flat Comments)
+
+```csv
+comment_id,video_id,comment_text,like_count,is_reply,parent_comment_id
+Ugw123...,dQw4w9WgXcQ,This video changed my life,22000,false,
+Ugw456...,dQw4w9WgXcQ,Same here 💯,2000,true,Ugw123...
+```
+
 ---
 
 ## How Comments Are Sorted 🔍
 
-- 🧠 Top N root comments by likes (default 20)
+- 🧠 **`--comment-sort top`** (default) — Top N root comments by likes
+- 🕐 **`--comment-sort newest`** — Chronological order, unbiased sample
 - 🪆 Replies under each root, newest first (up to 50 per root)
 
 ---
