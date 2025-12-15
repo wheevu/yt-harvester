@@ -190,12 +190,12 @@ def process_single_video_for_bulk_csv(url, args, pbar=None):
     except ValueError as exc:
         return False, f"Invalid URL '{url}': {exc}", None
     
-    watch_url = build_watch_url(video_id)
-    comment_sort = getattr(args, 'comment_sort', 'top')
-    
-    if pbar: pbar.set_description(f"Processing {video_id}")
-
     try:
+        watch_url = build_watch_url(video_id)
+        comment_sort = getattr(args, 'comment_sort', 'top')
+        
+        if pbar: pbar.set_description(f"Processing {video_id}")
+
         structured_comments = fetch_comments(
             video_id, 
             watch_url, 
@@ -204,16 +204,17 @@ def process_single_video_for_bulk_csv(url, args, pbar=None):
             comment_sort=comment_sort
         )
         
-        # Cleanup
-        cleanup_sidecar_files(video_id, (
-            ".info.json", ".live_chat.json", ".vtt", ".srt", 
-            ".en.vtt", ".en-orig.vtt", ".en-en.vtt", ".en-de-DE.vtt"
-        ))
-        
         return True, f"✅ {video_id}", (video_id, structured_comments)
 
     except Exception as exc:
         return False, f"❌ {video_id}: {exc}", None
+    
+    finally:
+        # Always cleanup sidecar files, even if processing fails
+        cleanup_sidecar_files(video_id, (
+            ".info.json", ".live_chat.json", ".vtt", ".srt", 
+            ".en.vtt", ".en-orig.vtt", ".en-en.vtt", ".en-de-DE.vtt"
+        ))
 
 
 def process_single_video(url, args, output_dir=None, pbar=None, progress_callback=None):

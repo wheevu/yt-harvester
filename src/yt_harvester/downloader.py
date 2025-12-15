@@ -132,13 +132,17 @@ def fetch_comments(
         comment_sort: 'top' (most liked) or 'newest' (chronological)
     """
     info_json_path = Path(f"{video_id}.info.json")
+    # max_comments format: MAX_COMMENTS,MAX_PARENTS,MAX_REPLIES_PER_THREAD
+    # - MAX_COMMENTS: max top-level comments to fetch (we fetch more than top_n to have selection)
+    # - MAX_PARENTS: max parent comments for nested replies (all = unlimited)
+    # - MAX_REPLIES_PER_THREAD: max replies per comment thread (100 is generous)
     cmd = [
         "yt-dlp",
         "--skip-download",
         "--write-comments",
         "--write-info-json",
         "--extractor-args",
-        f"youtube:max_comments={max_dl};comment_sort={comment_sort};player_client=default",
+        f"youtube:max_comments={max_dl},all,100;comment_sort={comment_sort};player_client=default",
         "--no-write-playlist-metafiles",
         "-o",
         f"{video_id}.%(ext)s",
