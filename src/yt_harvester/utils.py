@@ -8,6 +8,28 @@ from datetime import datetime
 VIDEO_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}$")
 SENTENCE_ENDINGS = (".", "!", "?", "…")
 
+_INVALID_PATH_CHARS_RE = re.compile(r'[\\/:*?"<>|\x00-\x1f]+')
+_WHITESPACE_RE = re.compile(r"\s+")
+
+def safe_path_name(value: str, *, max_len: int = 120) -> str:
+    """
+    Convert a title into a safe filename/directory name.
+    - Removes characters invalid on Windows/macOS/Linux filesystems
+    - Collapses whitespace
+    - Strips trailing dots/spaces (Windows)
+    """
+    text = (value or "").strip()
+    text = html.unescape(text)
+    text = _INVALID_PATH_CHARS_RE.sub(" ", text)
+    text = _WHITESPACE_RE.sub(" ", text).strip()
+    text = text.strip(". ").strip()
+    if not text:
+        return "untitled"
+    if len(text) > max_len:
+        text = text[:max_len].rstrip(". ").strip()
+    return text or "untitled"
+
+
 def playlist_id_from_url(value: str) -> Optional[str]:
     """
     Extract a YouTube playlist ID (the `list` query param) if present.

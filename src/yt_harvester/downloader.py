@@ -5,7 +5,13 @@ from typing import List, Dict, Any
 from collections import defaultdict
 import yt_dlp
 from youtube_transcript_api import YouTubeTranscriptApi
-from .utils import merge_fragments, clean_caption_lines, cleanup_sidecar_files, normalise_playlist_url
+from .utils import (
+    merge_fragments,
+    clean_caption_lines,
+    cleanup_sidecar_files,
+    normalise_playlist_url,
+    playlist_id_from_url,
+)
 
 OFFICIAL_TRANSCRIPT_LANGS = ["en", "en-US", "en-GB", "en-CA", "en-AU"]
 
@@ -61,6 +67,35 @@ def extract_playlist_video_urls(playlist_url: str) -> List[str]:
         seen.add(u)
         unique_urls.append(u)
     return unique_urls
+
+
+def extract_playlist_title_and_video_urls(playlist_url: str) -> tuple[str, str, List[str]]:
+    """
+    Expand a YouTube playlist URL to (playlist_title, playlist_id, [video_watch_urls]).
+    """
+    canonical = normalise_playlist_url(playlist_url) or playlist_url
+    pid = playlist_id_from_url(canonical) or "unknown-playlist"
+    ydl_opts = {
+        "quiet": True,
+        "skip_download": True,
+        "extract_flat": "in_playlist",
+        "ignoreerrors": True,
+        "extractor_args": {"youtube": {"player_client": ["default"]}},
+    }
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(canonical, download=False)
+    except Exception:
+        return ("(Unknown playlist)", pid, [])
+
+    title = "(Unknown playlist)"
+    if isinstance(info, dict):
+        t = info.get("title")
+        if isinstance(t, str) and t.strip():
+            title = t.strip()
+
+    urls = extract_playlist_video_urls(canonical)
+    return (title, pid, urls)
 
 
 def fetch_metadata(video_id: str, watch_url: str) -> dict:

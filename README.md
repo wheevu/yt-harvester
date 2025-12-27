@@ -66,6 +66,9 @@ Paste a playlist URL and it will harvest each video in that playlist:
 yt-harvester "https://www.youtube.com/playlist?list=PLxxxxxxxxxxxxxxxxxxxx"
 ```
 
+**Output location:** playlist runs are saved into a directory named after the playlist.
+**Output filenames:** each video is saved using the video title (plus its video id for uniqueness).
+
 ### Bulk Processing (Multiple Videos)
 
 Process multiple videos from a file:
@@ -191,8 +194,6 @@ comment_id,video_id,author,comment_text,like_count,timestamp,is_reply,parent_com
 Ugw123...,dQw4w9WgXcQ,@user,This video changed my life,22000,1658505600,false,
 Ugw456...,dQw4w9WgXcQ,@replier,Same here 💯,2000,1658506000,true,Ugw123...
 ```
-
-**Bulk CSV mode:** Creates a single combined `comments.csv` file with all comments from all videos.
 
 ---
 
