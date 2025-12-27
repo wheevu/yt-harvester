@@ -5,13 +5,63 @@ from typing import List, Dict, Any
 from collections import defaultdict
 import yt_dlp
 from youtube_transcript_api import YouTubeTranscriptApi
-from .utils import merge_fragments, clean_caption_lines, cleanup_sidecar_files
+from .utils import merge_fragments, clean_caption_lines, cleanup_sidecar_files, normalise_playlist_url
 
 OFFICIAL_TRANSCRIPT_LANGS = ["en", "en-US", "en-GB", "en-CA", "en-AU"]
 
 # Type alias for structured comment data
 CommentDict = dict  # {author, text, like_count, timestamp, id, replies}
 StructuredComments = List[CommentDict]
+
+def extract_playlist_video_urls(playlist_url: str) -> List[str]:
+    """
+    Expand a YouTube playlist URL to a list of per-video watch URLs.
+    Uses yt-dlp's extractor in 'flat' mode for speed.
+    """
+    canonical = normalise_playlist_url(playlist_url) or playlist_url
+    ydl_opts = {
+        "quiet": True,
+        "skip_download": True,
+        # 'in_playlist' keeps entries lightweight but still includes IDs.
+        "extract_flat": "in_playlist",
+        "ignoreerrors": True,
+        "extractor_args": {"youtube": {"player_client": ["default"]}},
+    }
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(canonical, download=False)
+    except Exception:
+        return []
+
+    if not isinstance(info, dict):
+        return []
+
+    entries = info.get("entries")
+    if not isinstance(entries, list) or not entries:
+        return []
+
+    urls: List[str] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        video_id = entry.get("id") or entry.get("url")
+        if isinstance(video_id, str) and video_id.strip():
+            urls.append(f"https://www.youtube.com/watch?v={video_id.strip()}")
+            continue
+        webpage_url = entry.get("webpage_url")
+        if isinstance(webpage_url, str) and webpage_url.strip():
+            urls.append(webpage_url.strip())
+
+    # De-dupe while preserving order
+    seen = set()
+    unique_urls: List[str] = []
+    for u in urls:
+        if u in seen:
+            continue
+        seen.add(u)
+        unique_urls.append(u)
+    return unique_urls
+
 
 def fetch_metadata(video_id: str, watch_url: str) -> dict:
     """Fetch video title and channel via yt-dlp; fall back to placeholders."""

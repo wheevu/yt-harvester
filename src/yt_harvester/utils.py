@@ -8,6 +8,44 @@ from datetime import datetime
 VIDEO_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}$")
 SENTENCE_ENDINGS = (".", "!", "?", "…")
 
+def playlist_id_from_url(value: str) -> Optional[str]:
+    """
+    Extract a YouTube playlist ID (the `list` query param) if present.
+    Returns None if input doesn't look like a playlist URL.
+    """
+    candidate = (value or "").strip()
+    if not candidate:
+        return None
+
+    # Raw video IDs should never be treated as playlists.
+    if VIDEO_ID_RE.fullmatch(candidate):
+        return None
+
+    parsed = urlparse(candidate)
+    host = (parsed.hostname or "").lower()
+    if not (host.endswith("youtube.com") or host in {"youtu.be", "www.youtu.be"}):
+        return None
+
+    query_params = parse_qs(parsed.query)
+    playlist_id = (query_params.get("list") or [None])[0]
+    if isinstance(playlist_id, str) and playlist_id.strip():
+        return playlist_id.strip()
+    return None
+
+
+def is_youtube_playlist_url(value: str) -> bool:
+    """Heuristic: treat any URL with a `list=` query param as a playlist input."""
+    return playlist_id_from_url(value) is not None
+
+
+def normalise_playlist_url(value: str) -> Optional[str]:
+    """Convert a URL containing a playlist id into a canonical playlist URL."""
+    playlist_id = playlist_id_from_url(value)
+    if not playlist_id:
+        return None
+    return f"https://www.youtube.com/playlist?list={playlist_id}"
+
+
 def video_id_from_url(value: str) -> str:
     """Extract the 11-character YouTube video ID from a URL or raw ID string."""
     candidate = value.strip()

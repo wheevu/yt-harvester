@@ -58,6 +58,14 @@ yt-harvester https://youtube.com/watch?v=dQw4w9WgXcQ
 yt-harvester dQw4w9WgXcQ  # just the ID works too
 ```
 
+### Playlist (All Videos)
+
+Paste a playlist URL and it will harvest each video in that playlist:
+
+```bash
+yt-harvester "https://www.youtube.com/playlist?list=PLxxxxxxxxxxxxxxxxxxxx"
+```
+
 ### Bulk Processing (Multiple Videos)
 
 Process multiple videos from a file:
@@ -73,6 +81,8 @@ Create a text file with one YouTube URL per line:
 https://www.youtube.com/watch?v=ZncbtRo7RXs
 https://www.youtube.com/watch?v=Q3K0TOvTOno
 https://youtu.be/g2X2LdJAIpU
+# You can also include playlist URLs; they will be expanded automatically
+# https://www.youtube.com/playlist?list=PLxxxxxxxxxxxxxxxxxxxx
 # Lines starting with # are ignored
 ```
 

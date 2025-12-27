@@ -3,7 +3,7 @@ from .config import DEFAULT_CONFIG
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Harvest transcript and comments from a YouTube video or process multiple videos from a file.",
+        description="Harvest transcript and comments from a YouTube video/playlist, or process multiple videos from a file.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -11,6 +11,9 @@ Examples:
   yt-harvester https://www.youtube.com/watch?v=dQw4w9WgXcQ
   yt-harvester dQw4w9WgXcQ -c 10 -f json
   
+  # Playlist processing:
+  yt-harvester https://www.youtube.com/playlist?list=PLxxxxxxxxxxxxxxxxxxxx
+
   # Bulk processing:
   yt-harvester --bulk links.txt
   yt-harvester --bulk links.txt -f json --bulk-output-dir ./outputs
@@ -19,7 +22,7 @@ Examples:
     parser.add_argument(
         "url",
         nargs="?",
-        help="The URL or Video ID of the YouTube video (not used with --bulk)"
+        help="The URL or ID of a YouTube video, or a playlist URL (not used with --bulk)"
     )
     parser.add_argument(
         "-c", "--comments",

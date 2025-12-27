@@ -7,8 +7,15 @@ from tqdm import tqdm
 
 from .cli import parse_args
 from .config import load_config
-from .utils import video_id_from_url, build_watch_url, cleanup_sidecar_files, format_like_count, format_timestamp
-from .downloader import fetch_metadata, fetch_transcript, fetch_comments
+from .utils import (
+    video_id_from_url,
+    build_watch_url,
+    cleanup_sidecar_files,
+    format_like_count,
+    format_timestamp,
+    is_youtube_playlist_url,
+)
+from .downloader import fetch_metadata, fetch_transcript, fetch_comments, extract_playlist_video_urls
 from .processor import analyze_sentiment, extract_keywords
 
 YOUTUBE_HARVESTER_BANNER = r"""
@@ -301,6 +308,27 @@ def process_single_video(url, args, output_dir=None, pbar=None, progress_callbac
     except Exception as exc:
         return False, f"❌ {video_id}: {exc}"
 
+def _expand_inputs_to_video_urls(inputs):
+    """
+    Expand a list of inputs (video URLs/IDs or playlist URLs) into per-video watch URLs.
+    Playlist entries are expanded via yt-dlp; non-playlist inputs are returned as-is.
+    """
+    expanded = []
+    for raw in inputs:
+        value = (raw or "").strip()
+        if not value:
+            continue
+        if is_youtube_playlist_url(value):
+            playlist_urls = extract_playlist_video_urls(value)
+            if playlist_urls:
+                expanded.extend(playlist_urls)
+            else:
+                # Keep a clear failure surface; caller will handle empty result overall.
+                pass
+        else:
+            expanded.append(value)
+    return expanded
+
 def main():
     print(YOUTUBE_HARVESTER_BANNER)
     args = parse_args()
@@ -319,6 +347,13 @@ def main():
         if not links:
             print("⚠️ No links found.")
             return 1
+
+        # Expand any playlist URLs found in the bulk file.
+        expanded_links = _expand_inputs_to_video_urls(links)
+        if not expanded_links:
+            print("❌ No videos found after expanding inputs (playlist may be empty/unavailable).")
+            return 1
+        links = expanded_links
 
         output_dir = Path(args.bulk_output_dir) if args.bulk_output_dir else None
         if output_dir:
@@ -377,6 +412,67 @@ def main():
             print("   Usage: yt-harvester <URL>")
             print("   Or use --bulk <file> for batch processing.")
             return 1
+
+        # If a playlist URL is provided as the positional input, expand and process like bulk mode.
+        single_inputs = [args.url]
+        expanded_links = _expand_inputs_to_video_urls(single_inputs)
+        if not expanded_links:
+            print("❌ No videos found after expanding input (playlist may be empty/unavailable).")
+            return 1
+
+        # Guard: -o is only safe for single-video inputs.
+        if args.output and len(expanded_links) > 1:
+            print("❌ Error: -o/--output can only be used for a single video, not a playlist.")
+            print("   Tip: Use --bulk-output-dir to control where per-video outputs are saved.")
+            return 1
+
+        if len(expanded_links) > 1:
+            # Reuse the existing bulk pipeline (parallel for non-CSV).
+            links = expanded_links
+            output_dir = Path(args.bulk_output_dir) if args.bulk_output_dir else None
+            if output_dir:
+                output_dir.mkdir(parents=True, exist_ok=True)
+            print(f"🚀 Processing {len(links)} videos...")
+
+            success_count = 0
+            failed_count = 0
+
+            if args.format == "csv":
+                combined_csv_path = (output_dir / "comments.csv") if output_dir else Path("comments.csv")
+                save_csv(combined_csv_path, "", [], append=False)
+
+                with tqdm(total=len(links), unit="video") as pbar:
+                    for link in links:
+                        success, msg, comments_data = process_single_video_for_bulk_csv(link, args, pbar)
+                        if success and comments_data:
+                            video_id, structured_comments = comments_data
+                            save_csv(combined_csv_path, video_id, structured_comments, append=True)
+                            success_count += 1
+                        else:
+                            failed_count += 1
+                            tqdm.write(msg)
+                        pbar.update(1)
+
+                print(f"\n📊 Done! Success: {success_count}, Failed: {failed_count}")
+                if success_count > 0:
+                    print(f"📁 Combined CSV: {combined_csv_path}")
+                return 0 if failed_count == 0 else 1
+
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                with tqdm(total=len(links), unit="video") as pbar:
+                    futures = {executor.submit(process_single_video, link, args, output_dir, pbar): link for link in links}
+
+                    for future in as_completed(futures):
+                        success, msg = future.result()
+                        if success:
+                            success_count += 1
+                        else:
+                            failed_count += 1
+                            tqdm.write(msg)
+                        pbar.update(1)
+
+            print(f"\n📊 Done! Success: {success_count}, Failed: {failed_count}")
+            return 0 if failed_count == 0 else 1
         
         # Adjust progress bar steps based on mode
         # Full mode: metadata → transcript → comments → analysis → save (5 steps)
@@ -389,7 +485,7 @@ def main():
                 pbar.set_description_str(desc)
                 pbar.update(1)
             
-            success, msg = process_single_video(args.url, args, progress_callback=update_progress)
+            success, msg = process_single_video(expanded_links[0], args, progress_callback=update_progress)
             
             # Ensure bar completes if successful
             if success and pbar.n < total_steps:
