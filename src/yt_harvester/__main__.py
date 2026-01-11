@@ -1,12 +1,13 @@
 import sys
 import json
 import csv
+import logging
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 
 from .cli import parse_args
-from .config import load_config
+from .config import load_config, DEFAULT_CONFIG
 from .utils import (
     video_id_from_url,
     build_watch_url,
@@ -41,7 +42,39 @@ ________________________________________________________________________________
 ________________________________________________________________________________
 """.strip("\n")
 
+logger = logging.getLogger("yt_harvester")
+
+
+def _apply_config(args, config):
+    comments_config = config.get("comments", {})
+    output_config = config.get("output", {})
+    processing_config = config.get("processing", {})
+    runtime_config = config.get("runtime", {})
+
+    if args.comments == DEFAULT_CONFIG["comments"]["top_n"]:
+        args.comments = comments_config.get("top_n", args.comments)
+    if args.max_comments == DEFAULT_CONFIG["comments"]["max_download"]:
+        args.max_comments = comments_config.get("max_download", args.max_comments)
+    if args.format == DEFAULT_CONFIG["output"]["format"]:
+        args.format = output_config.get("format", args.format)
+    if not args.bulk_output_dir:
+        output_dir = output_config.get("dir")
+        if output_dir and output_dir != ".":
+            args.bulk_output_dir = output_dir
+    if not args.no_sentiment and processing_config.get("sentiment") is False:
+        args.no_sentiment = True
+    if not args.no_keywords and processing_config.get("keywords") is False:
+        args.no_keywords = True
+    if args.workers == DEFAULT_CONFIG["runtime"]["workers"]:
+        args.workers = runtime_config.get("workers", args.workers)
+    if args.log_level == DEFAULT_CONFIG["runtime"]["log_level"]:
+        args.log_level = runtime_config.get("log_level", args.log_level)
+
+    return args
+
+
 def format_comments_for_txt(structured_comments):
+
     """
     Format structured comment data into text lines for display.
     """
@@ -285,6 +318,7 @@ def process_single_video(url, args, output_dir=None, pbar=None, progress_callbac
         return True, f"✅ {video_id} -> {output_path}"
 
     except Exception as exc:
+        logger.exception("Failed processing %s", video_id)
         return False, f"❌ {video_id}: {exc}"
 
 def _build_jobs(inputs, base_output_dir: Path | None):
@@ -336,7 +370,8 @@ def _run_jobs(jobs, args, base_output_dir: Path | None):
     success_count = 0
     failed_count = 0
 
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    max_workers = max(1, int(getattr(args, "workers", 4) or 1))
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         with tqdm(total=len(jobs), unit="video") as pbar:
             futures = {
                 executor.submit(process_single_video, url, args, out_dir, pbar): (url, out_dir)
@@ -358,9 +393,11 @@ def main():
     print(YOUTUBE_HARVESTER_BANNER)
     args = parse_args()
     config = load_config()
-    
-    # Merge config with args if needed
-    
+    args = _apply_config(args, config)
+
+    log_level = getattr(logging, str(args.log_level).upper(), logging.INFO)
+    logging.basicConfig(level=log_level, format="%(levelname)s: %(message)s")
+
     if args.bulk:
         try:
             with open(args.bulk, "r", encoding="utf-8") as f:

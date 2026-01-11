@@ -11,7 +11,7 @@ description = "A tool to extract transcripts and comments from YouTube videos."
 readme = "README.md"
 requires-python = ">=3.8"
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "wheevu"}
 ]
 keywords = ["youtube", "transcript", "comments", "harvester", "scraper"]
 classifiers = [
@@ -39,6 +39,6 @@ dependencies = [
 yt-harvester = "yt_harvester.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/yourusername/yt-harvester"
-Repository = "https://github.com/yourusername/yt-harvester.git"
-Issues = "https://github.com/yourusername/yt-harvester/issues"
+Homepage = "https://github.com/wheevu/yt-harvester"
+Repository = "https://github.com/wheevu/yt-harvester.git"
+Issues = "https://github.com/wheevu/yt-harvester/issues"

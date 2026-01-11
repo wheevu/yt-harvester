@@ -80,5 +80,18 @@ Examples:
         action="store_true",
         help="Only fetch comments, skip metadata, transcript, and analysis. Much faster."
     )
-    
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=DEFAULT_CONFIG["runtime"]["workers"],
+        metavar="N",
+        help=f"Number of concurrent workers for bulk jobs. Default: {DEFAULT_CONFIG['runtime']['workers']}"
+    )
+    parser.add_argument(
+        "--log-level",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default=DEFAULT_CONFIG["runtime"]["log_level"],
+        help=f"Logging verbosity. Default: {DEFAULT_CONFIG['runtime']['log_level']}"
+    )
+
     return parser.parse_args()

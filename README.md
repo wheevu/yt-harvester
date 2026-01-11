@@ -108,6 +108,8 @@ yt-harvester --bulk links.txt -f json --bulk-output-dir ./results -c 30
 --bulk-output-dir DIR  # Output directory for bulk mode
 --comment-sort newest  # Chronological order (default: top)
 --comments-only     # Skip metadata/transcript/analysis (fast mode)
+--workers N         # Concurrent workers for bulk/playlist jobs
+--log-level LEVEL   # DEBUG, INFO, WARNING, ERROR, CRITICAL
 ```
 
 Combine as needed:
@@ -148,6 +150,8 @@ options:
   --bulk-output-dir DIR  Output directory for bulk mode
   --comment-sort {top,newest}  Sort by likes or chronological (default: top)
   --comments-only      Skip metadata/transcript/analysis for speed
+  --workers N          Concurrent workers for bulk/playlist jobs
+  --log-level LEVEL    DEBUG, INFO, WARNING, ERROR, CRITICAL
 ```
 
 ---
