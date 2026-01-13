@@ -2,9 +2,9 @@
 
 <img src="./asset/banner.png">
 
-(First open-source project 🤞🏻)
+(First project 🤞🏻😬)
 
-I built this scrappy little Python tool to do the grunt work. It pulls YouTube videos apart and hands you the **good stuff** — transcripts, comments, metadata — in clean, readable files. 😌
+Scrappy little Python tool to do the grunt work. It pulls transcripts, comments, metadata from Youtube. 😌
 
 ## What It Does 🔧
 
