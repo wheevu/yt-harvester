@@ -10,12 +10,12 @@ For a single video URL or video ID, it always fetches:
 - threaded comments
 
 Then it produces one text report with:
-- a short thesis at the top
-- timestamped transcript chunks (`[00:00-00:42] ...`)
-- audience themes
-- controversial points (side A / side B)
+- a short video core at the top
+- full timestamped transcript chunks (`[00:00-00:42] ...`)
+- audience read + main comment themes
+- controversy/split read
 - interesting outliers
-- high-signal comments ranked by a thread signal score
+- top comments with concise `Why` notes
 
 ## Install
 
@@ -47,33 +47,36 @@ If `-o` is omitted, output defaults to:
 ```text
 TITLE
 CHANNEL
+DATE
 URL
 
-THESIS
+VIDEO CORE
 - ...
 
-TRANSCRIPT SNAPSHOT
+FULL TIMESTAMPED TRANSCRIPT
 [00:00-00:42] ...
 
-AUDIENCE THEMES
+AUDIENCE READ
+- ...
+
+MAIN COMMENT THEMES
 1. ...
 
-CONTROVERSIAL POINTS
-- issue
-  - side A
-  - side B
+CONTROVERSY / SPLIT
+- ...
 
 INTERESTING OUTLIERS
 - comment
-  - why it stands out
+  - Why: ...
 
-HIGH-SIGNAL COMMENTS
-- score=... likes=... replies=... author=...: ...
+TOP COMMENTS
+- likes=... replies=... author=...: ...
+  - Why: ...
 ```
 
 ## Signal scoring
 
-Thread ranking uses a weighted heuristic over:
+Comment ranking uses a weighted heuristic over:
 - root comment likes
 - reply count
 - total likes across replies
