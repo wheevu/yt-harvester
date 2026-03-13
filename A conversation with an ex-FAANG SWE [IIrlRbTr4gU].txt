@@ -1,0 +1,175 @@
+TITLE
+A conversation with an ex-FAANG SWE
+
+CHANNEL
+Coding Jesus (getcracked.io)
+
+DATE
+2025-09-06
+
+URL
+https://www.youtube.com/watch?v=IIrlRbTr4gU
+
+VIDEO CORE
+- Coding Jesus (getcracked.io) uses A conversation with an ex-FAANG SWE as a focused narrative with limited topic drift across the key excerpts.
+- Audience discussion is led by disillusionment with big tech and people getting sent the link.
+- Overall reaction is weakly split.
+
+FULL TIMESTAMPED TRANSCRIPT
+- [00:00-00:13] So, you're saying that everybody in school sells Amazon and Fangus. This like panacea of amazing tech and gods and everybody's cracked and it's like, oh, it's going to be so amazing and fun, but then when you get there, you just die. >> Yeah.
+- [00:11-00:26] >> The following is an older conversation that I had with an exfang software engineer. Most recently, a lot of people have been expressing interests in these sorts of candid conversations and so I decided to post this. This was actually filmed while I was visiting family in
+- [00:24-00:38] Israel, so the audio and video quality isn't great. I didn't have the best tech, but I think what's more important here is the content. So, without further ado, let's get into it. >> All right, we have another person on. , this is more going to be, I guess, a
+- [00:37-00:58] career career guidance because he's not like a cracked out C++ dude. Let us know what's your background. Tell us a bit about yourself. >> Yeah, sure. , hi everyone. so my name is Akil and I actually did my undergrad in CS back in India and right
+- [00:53-01:21] out of college I joined Amazon in AWS. I worked there for around two years and honestly I found it really boring. So I just came to the University of Chicago to do my master's in data analytics and machine learning. And after completing that, I I graduated this December. So I
+- [01:18-01:41] I got a job at a startup which is basically fintech plus AI. And yeah, I'm going to be joining there in February, but I'm I'm trying to call in because when I first joined Chicago, like I was really interested in quant and C++ and stuff. So I I started off following the
+- [01:39-02:01] projects you had. So, I kind of always have been following your videos. But now that I'm going more deeper into the industry, I'm trying to figure out how I can create a niche for myself. What I'm really interested in is creating a kind of profile where companies reach out to
+- [01:57-02:19] me and not the other way around. And I'm kind of like ticking off the areas, checking off the areas that I don't want to go in. So from my perspective and I'm sure it might be flawed but I really don't like machine learning and data science enough to do a PhD and I know
+- [02:16-02:38] it's really competitive especially how fast Open AI and all these anthropic claude are releasing their new models each day. So it just feels like if I was to commit five years of my life on, you know, going towards a thesis or defending something and then the next
+- [02:35-02:51] day, oh, here's a new model. Go go go and use this and it's way better than whatever I've been working on. I think that would be really discouraging for me. >> Let's let's put a let's put a pause there because it seems like you're you're you're free flowing. I want to
+- [02:50-03:07] start asking some questions if that's okay about like your career trajectory and things along that nature. Sure. >> Today's video sponsor is me. I built a platform called getcrack.io which focuses on helping candidates smash the knowledge round. This focuses on things
+- [03:04-03:22] like language knowledge, concurrency, computer architecture, big data, networking, operating systems, and all the other stuff that really no other platform provides in terms of interview prep and skill up content. This isn't only code snippet, multiplechoice sorts
+- [03:20-03:36] of answers and problems. It's also coding related problems, things that will not only come up in interviews because they have, but also teach you a lot of the fundamental tools and concepts you're going to need to know to become a better developer. This isn't
+- [03:34-03:48] too, this isn't Coco's bananas. These are real practical problems to help you skill up and become a better interviewer. Check it out. You mentioned you want companies to reach out to you. And I think that's a really good valiant goal because a lot of people are
+- [03:46-04:01] dependent on other companies reaching out to them and so they put themselves in the pipeline with a thousand other candidates that all apply on LinkedIn easy apply. So I guess my question to you is what sort of projects have you built that you can highlight to
+- [03:58-04:15] employers whether that's on Twitter or maybe you make a cool reel about it and and have that go viral. What sort of projects have you built so far? >> Most of my time at Amazon is like it's so frustrating. You don't have time, you know, after work. So most of my projects
+- [04:13-04:33] are just within the org and after coming to you Chicago I'd say class projects I did I did create an I did create an order book in Python >> class projects simple stuff like that don't count. >> Yeah. okay. Yeah. >> Which where do you want to go? If you
+- [04:31-04:53] can pick to go anywhere where would you want to go? >> I'm really excited about the startup space. Honestly, I my end vision goal is that I want to get off the computer. I mean, I I like coding. That's fine and good, but I just want to transition out
+- [04:49-05:07] of this because I I see myself, I don't know, like leading a company or something, but I'm not even sure how to go down that route. I I don't want to do an MBA or stuff. So, it's kind of hard for me because I don't have seniors in this space. And that's why I wanted to
+- [05:05-05:22] talk to you like maybe you have friends or h how do you how do you think about staying as an individual contributor or ever pivoting out of that? >> So personally I love being an individual contributor. I have people in my company that have gone from individual
+- [05:19-05:35] contributors to non nonIC work. So they're managers etc. So they lead the team but they have coding background. They just don't necessarily actually contribute themselves. The reason I like being an individual contributor more is because your work is seen more. your
+- [05:33-05:51] impact is more tangible whereby if you're just some like scrum master dude that's sitting there with your coffee nobody really knows what you're doing so >> yeah I want to break out of both of those mentalities like I I don't want to be working like 95 I don't know how to
+- [05:49-06:06] explain this but it just feels like a vicious cycle when I was back in Amazon maybe this is skewed because I've just seen one company's culture but it's like work never ends and and all of these people just come at lunch and they're discussing the next thing they want to
+- [06:04-06:27] work on and and I just didn't really vibe with that honestly. >> Do they do they like just do yoga half the day and then they like play Counterstrike and they're actually coding like 30 minutes a day? What's the Amazon culture like? >> Amazon culture is really day one
+- [06:24-06:42] mentality. I mean, everyone hears that, but it's sometimes it's kind of overwhelming to new grads because they don't really know what to expect when they're entering the industry. They're all filled with filled with excitement and motivation and it's
+- [06:39-07:00] really easy to get burnt up. I felt it myself and and some of the teams it's kind of like luck based. You're either going to be in a good team obviously or a bad team. And and what I mean by good or bad is like the on call frequency. So there's this concept of on
+- [06:57-07:17] call where you're the ownership. You're the owner of whatever code you write, which which kind of makes sense, but other companies don't necessarily do that. So for example, at my team, so my team was in AWS and we worked in Amazon Go. So, it's these stores where
+- [07:15-07:35] you have these cameras on the ceiling and you're basically automatically tracking customers picking up items. Since all of these stores are located in the US and our team was in India, whenever the code would like get blown up, it would happen in 3:00 a.m. or 5:00
+- [07:31-07:50] a.m. and and you know, my pagers ringing and work life balance then goes out of the window. But >> I Yeah. >> So, everybody sells. So you're saying that everybody in school sells Amazon and Fangus this like panacea of amazing tech and gods and everybody's cracked
+- [07:49-08:07] and it's like oh it's going to be so amazing and fun but then when you get there you just die. >> there's no black and white answer honestly but there are people who are good at coasting in big tech companies and then there are people who kind of
+- [08:05-08:26] get burnt up really quickly. So there are PMs and engineering managers who basically don't do a lot for what they're earning and there isn't really a lot of time to like pinpoint these people. There are there is a whole spectrum basically. Yeah.
+- [08:23-08:43] >> Okay. and so you said you would say your work at Amazon was not that interesting. Why is that? So, so in my undergrad, I was really interested in computer vision and I did internships and research assistant posts related to that. So, when I got the
+- [08:41-08:57] opportunity to join Amazon Go, which is which I thought was going to be computer vision, I was really excited. I'm like, "Wow, this is my dream. I'm going to work on computer vision." And then I go over there and I realize that the people who are actually writing the computer
+- [08:54-09:16] vision algorithms are based in Israel. they're PhD people or they're in the US there are these totally cracked PhD guys from China or India I don't know from where and the actual things that I'm doing is just like sending requests to their algorithm getting the responses
+- [09:13-09:35] and my service is basically the orchestrator for you know the organization so it was not exactly what I had in mind and yeah that was part of the reason why I wanted to move out from there and I also felt that when my family would ask me like what's open AI
+- [09:33-09:48] doing what's chat GPD I'm like I I don't know it's something it's magic so I thought I should go and get a masters and understand what it's what it's doing but I'm just looking at the pace of how open AI is releasing stuff I I don't think I can ever match that honestly as
+- [09:47-09:59] a PhD guy >> yeah I see what you're saying that that makes a lot of sense the the impact you probably have is a lot less than you thought you would have had that's actually interesting I was at a birthday party yesterday and the One, a guy sitting beside me. He's like, "Hey, do
+- [09:58-10:11] you want to see something?" I'm like, "Sure." He's like some 46-y old dude. He's like, "I work at a a LAR company. Take a look at this demo." And he showed me this like crazy computer vision like thing that he wrote in C++ like some demo. And I'm like, "Dude, this" And I
+- [10:11-10:28] just looked at him like, "Dude, this guy's correct." >> But yeah, anyways. Yeah. , >> in terms of your Python, do you think you're a strong Python developer? Where would you rank yourself? >> , I don't know. I'm I'm the kind of developer that can get things done. I'm
+- [10:26-10:45] never really interested in knowing the full technical knowledge because languages change I don't know 10 years from now what's going to be obsolete or not. So I I don't really care about knowing the exact technical knowhow. But I I guess on a scale of 1 to 10 I'd say
+- [10:42-11:03] maybe five four or five. >> All right. So you're like average. >> Yeah. I don't really mind about it. >> I see. Okay. What's your favorite thing about Python? What's my favorite thing about Python? >> , >> favorite feature. Favorite feature.
+- [11:01-11:18] >> Favorite feature. I I was watching one of your streams the other day. I remember this, but one of the So, I remember like everyone's going to say this, the global interpreter lock that they're adding in the latest version. I guess that was one of the problems we
+- [11:16-11:36] had actually had at Amazon because we had these we had Java and Python interacting together and we couldn't do the the threading thing because of the Python not having the GIL thing. I don't I don't know honestly. I've never used it so I can't really say.
+- [11:34-11:52] >> You've never used Python? >> No, I never actually tried to handle threading or stuff in Python. That's what I'm saying. >> Oh, I I think you mean because Python does have the GIL, you couldn't do anything. >> Yeah, it does have the GL though. >> Yeah,
+- [11:48-12:15] >> I see. Okay. If you were to write a Python package and you were to include a dunder init file in that package, what does a dunder init file do? >> I don't think I've ever done that. >> So, you've never had to write a library in Python? No. >> Interesting.
+- [12:15-12:34] It seems like Amazon, every every Amazon coder that I've talked to, it seems like they don't write much code. So, actually the kind of code that we have to write is different from I guess so you're trying to talk about code where you're writing things from 0 to
+- [12:31-12:50] one. The kind of work we did, at least I did, was not zero to one. It's from like 100 to 110. I guess that's what I'm trying to say. So we're we're adding features on top of a legacy codebase. We're not actually writing things from scratch. But I mean I think even at
+- [12:49-13:09] large organizations you might want to write your own custom library to do or perform XY Z. So it's it's interesting to me that you didn't have familiarity with that. I mean I I guess but there are like so many things in CS that one could talk
+- [13:06-13:27] about but I don't get a chance to touch all of it. So I'm usually just concerned with what's at hand. I just keep my knowledge constraint to that. >> Okay. >> So I've never had to write a package honestly. Actually I was thinking about this the other day. I wanted to I wanted
+- [13:23-13:41] to write a package for limiting the number of hours I spend on Dota 2 so that it would just quit quit the game after two games. So I was trying to write a scraping thing and I I'm going to look up how to publish that >> as a library or something.
+- [13:39-13:54] >> Let let me ask you this. If you wanted to send data from one computer, one Python process to another Python process on another computer, how would you do that? Because you just mentioned potentially making a Windows server. So how would I do that? How would I send
+- [13:51-14:10] data from one process, one computer to another? >> I think you use sockets for that. I've never done that before, honestly. >> So, at Amazon, you don't have a distributed system architecture where you're responsible for sending data from one place to another.
+- [14:07-14:30] >> No, we have a distributed architecture. Most of our most of the the work is done in the cloud. So we had our own EC2 instances but each of them did not act if I remember correctly and this is three years old I don't think they interacted with each other honestly.
+- [14:27-14:42] yeah we had a master slave architecture and I can't go into more details otherwise I'm just >> that's fine >> breaking >> sure I'm just surprised that you didn't have any when when I think of distributed systems I think about computer A at the minimum sending
+- [14:40-14:54] information to computer B. So it's like a client server architecture, but you're talking about this like cloud computing architecture where each process is isolated to a given EC2 instance environment and they never interact with each other.
+- [14:51-15:12] >> Yeah. Honestly, my weak I won't even call them weak points. It's just something I've never been interested in. Hardware distributed systems, I've never really found an affinity towards them. It just felt honestly very boring. at risk of saying that I I never
+- [15:10-15:32] found it fun honestly. >> Interesting. it doesn't sound like you like coding much. Let Let me ask you this. If I was to if I was to if I was to ask you what's the difference between dunder init and dunder new in Python. >> I don't know that. >> Okay.
+- [15:29-15:54] interesting. At Amazon, how what percent of your day would you send you spent coding? >> That's a good question. So yeah, so it depends. When I first joined the team, I'd say like most of my day was just onboarding on stuff, learning the
+- [15:51-16:16] existing systems and then around the month five up till month 10, it was 60% coding new features that we want to add. , >> sorry. You started at month five or month at month five to month 10 60%. >> No, no, no, no. , for the first three months it was onboarding as a new new
+- [16:14-16:27] hire. Yeah. So at Amazon, >> but what does that mean? Is that like you're onboarding your 30% code? Because to me onboarding is like you file some paperwork, you write some down, you like ask some dude where the bathroom is. That's onboarding for me.
+- [16:26-16:48] >> I don't know what you what's on boarding for Amazon. So just give us a bit more detail. >> Sure. So onboarding at my organization was actually sitting with engineers who are working on their existing code features trying to understand the state of the system
+- [16:46-17:06] and the first three months for a new hire you're just setting your system and you're starting to get small jobs to work upon. So like small tickets where you're like bug fixes really small low impact bug fixes. Around the third to fifth month I actually started
+- [17:04-17:24] developing my own Python scripts to like automate some of the processes that these guys had. So that's what I did honestly and then my manager really liked the project that I was working upon. So it was kind of pushed up forward. >> Interesting. So at that five or at that
+- [17:23-17:43] what you say the five month mark where you started automating scripts. >> No no no I was automating scripts after somewhere between the two and a half month to five fifth month. >> During that period what percent of your day would you say were spent coding? >> I'd say like 50%.
+- [17:43-18:03] Yeah. >> Wow. So I I just want to I just want to compare that to the actual quant space. So quant in quant just so you guys know in quant development and software engineering in that space onboarding is a week at most the first three days of
+- [18:00-18:17] onboarding is the fir a week at most but the first day is like where's the bathroom what's everybody's names where does everybody sit where's the snacks where's the food and here's some paperwork to make sure you get paid that's onboarding after the first week
+- [18:16-18:30] like you're you're starting you're starting to code like you're getting sent to you. Like you're you're coding like 70% of the day at least. And by the three months, you're not just starting to automate little scripts here and there. By three months, your manager
+- [18:29-18:45] already knows whether he wants to keep you on board or whether or not he wants to fire you. So that's kind of your trial period. Everything in Fang just sounds so like loveydovey like I don't know how to write. >> Everything is Yeah. Sorry to interrupt
+- [18:43-19:02] you. everything in fang from my perspective is designed so that you don't things up because the scale with which these guys are operating if some new hire comes in and just messes something and people don't actually pay attention to what's being pushed through
+- [18:59-19:15] the code review then it actually makes an impact tangible impact I'm not saying that it's not the same in quant I have no experience in quant >> it sounds like as a result of that though that you don't learn much and you don't make as big as of an impact act as
+- [19:13-19:35] you probably should be as a developer. >> Yeah, that's why I left Amazon. That's why I don't want to be in big tech because I feel things just move too slowly and to get something launched, I need to be in 10 different meetings with 10 different shareholder stakeholder
+- [19:32-19:47] teams. It just feels too slow for me. That's why I'm kind of moving to the startup space where things need to be done quickly. They don't matter how you get it done, but get it done. Get it working. >> Yeah, I think you'd like quant because that's how it works a lot. Get it done,
+- [19:46-20:04] get it working, and do a good job. But you're going to need to to up your code skills a lot more. What was the interview process like at Amazon for you to to get in? So I don't know how it happens in the US but in India we have something called
+- [20:01-20:27] placements where if you're at a good engineering college there are companies that come to you because they want to hire the students. So, Amazon came on campus at my college and we had four rounds I think. , all of them were technical. There was no HR.
+- [20:23-20:44] Most of the rounds were I so this was back in 2020. At that time, lead code was not that big. So, most of I guess all of the questions they asked for lead code. In the third round, I remember the guy was asking a few questions about networking. I never really liked
+- [20:42-20:59] networking, but I studied for it that day. I remember. So, at this point in my career, I'm not sure what I should be focusing on, honestly. >> Yeah, it seems like you don't even like coding, honestly. >> So, I can't really There's I heard there's a concept in India called a
+- [20:57-21:14] forced engineer. I heard that from one of my friends where it's like you were just an engineer because somebody told you to be an engineer and you find a lot of the stuff cool. Maybe you're you're set to be like the manager dude that kind of knows code, kind of doesn't know
+- [21:10-21:24] code, but knows how to be a good manager for developers. Maybe that's the course you want to take because you said you don't like really being an individual contributor. You don't see yourself there long term. So maybe you're that type of guy that reads the
+- [21:23-21:39] news and knows what's going on and wrote some code in his youth, but maybe isn't like the cracked out dude or the dude that really cares to be cracked. So maybe that's the place you transition to. So maybe you look for like data analyst man management roles in in that
+- [21:37-21:47] space. But I'm gonna get another person on. We have a lot of people on the call. Thanks for joining. >> Okay. Yeah, I appreciate your time. Thank Thanks.
+
+AUDIENCE READ
+- Dominant reaction is supportive.
+- Audience is weakly split.
+- Most comments cluster around: Disillusionment with big tech.
+
+MAIN COMMENT THEMES
+1. Disillusionment with big tech
+   - Commenters frame the discussion as a broader frustration with corporate tech culture, not just an isolated personal story.
+   - @EnterANameReal: The guy wants to stop coding, wants to get away from IC work but also people work, but wants to start a company. I don’t think he knows what he wants.
+   - @dt38679: Love your content but you could really benefit from being more aware of the superiority complex you have on your personal experience in work. This channel is in the context of the quant space, I re...
+   - @AnimeGIFfy: never understood the faang hype, everything i hear about them is either boring or frustrating.
+   - @pancreasdragonheart9765: I joined a military defense company as my first job, a place with roughly 1 billion lines of code. I did nothing but read the dense design documents and specs engineers write, tracing code paths, a...
+
+2. People getting sent the link
+   - A large share of replies are story-style comments about being tricked, baited, or unexpectedly sent this video.
+   - @scontt2-fe2iq: Having a masters in CS, being a python programmer, and not knowing what _init_ or _new_ does is the truly mind blowing thing here. I work at AWS, and am not an SDE but i dev internal tools anyway b...
+   - @thetzsar5949: not knowing what "_init_ " is, is very sad if you're calling yourself a python developer lmao
+   - @slodoco: What the f is dunder? You mean double underscore? Pardon my ignorance.
+   - @taestott: I'm a former AWS SDE. At AWS, you set up distributed systems but within the AWS ecosystem. So if you want to send data from instance/service A to instance/service B you're using AWS products to fac...
+
+3. Secondary audience reactions
+   - Commenters treat this as a shared inside joke and build on each other with playful variations.
+   - @TinyBolts1: coding jesus is an ironic name considering Israeli heritage (got nothing against that)
+   - @TheOnlineMarket: I thought you were Indian?
+   - @bryceheerink2744: Looking at the mod commenting at the guy in the comments was maybe the best part. "Bardan what do you want me to do?" 20:56
+   - @davidochieng9850: This is a real employee. I can relate to the tiredness in his tone
+
+4. Playful side reactions
+   - Commenters treat this as a shared inside joke and build on each other with playful variations.
+   - @moog730: Y do u keep trying to looksmax every thumbnail lmao
+   - @TroyMorgan-c8p: why r u yassified in the thumbnail
+   - @mikailgee1466: STOP! Is this a Joke!
+
+CONTROVERSY / SPLIT
+- Disillusionment with big tech (weak split)
+  - Weak split: reaction is mostly supportive, with noticeable critical pushback.
+  - @dt38679: Love your content but you could really benefit from being more aware of the superiority complex you have on your personal experience in work. This channel is in the context of t...
+  - @OhsoLosoo: This is probably the most realistic employee I've ever seen from one of these larger companies. They are picked because they can solve problems on the fly. They don't even care...
+
+INTERESTING OUTLIERS
+- @EnterANameReal: The guy wants to stop coding, wants to get away from IC work but also people work, but wants to start a company. I don’t think he knows what he wants.
+  - Why: Introduces an unexpected angle compared with the dominant comment themes.
+- @z-devv: Wants to build a profile where companies reach out to him; however, he's: - not really interested in Machine Learning - Not really interested in being an individual contributor - Not really interested in cod...
+  - Why: Introduces an unexpected angle compared with the dominant comment themes.
+- @scontt2-fe2iq: Having a masters in CS, being a python programmer, and not knowing what _init_ or _new_ does is the truly mind blowing thing here. I work at AWS, and am not an SDE but i dev internal tools anyway because my...
+  - Why: Introduces an unexpected angle compared with the dominant comment themes.
+- @pancreasdragonheart9765: I joined a military defense company as my first job, a place with roughly 1 billion lines of code. I did nothing but read the dense design documents and specs engineers write, tracing code paths, and trying...
+  - Why: Adds a macro view-count/longevity angle instead of the usual thread framing.
+- @OhsoLosoo: This is probably the most realistic employee I've ever seen from one of these larger companies. They are picked because they can solve problems on the fly. They don't even care about if they know anything. J...
+  - Why: Unusually blunt or humorous angle that shifts the tone of the thread.
+
+TOP COMMENTS
+- likes=296 replies=8 author=@EnterANameReal [2025-09-13]: The guy wants to stop coding, wants to get away from IC work but also people work, but wants to start a company. I don’t think he knows what he wants.
+  - Why: Largest reply thread; strongest conversation magnet.
+- likes=98 replies=7 author=@scontt2-fe2iq [2025-09-13]: Having a masters in CS, being a python programmer, and not knowing what _init_ or _new_ does is the truly mind blowing thing here. I work at AWS, and am not an SDE but i dev internal tool...
+  - Why: One of the most endorsed comments, signaling broad agreement.
+- likes=98 replies=5 author=@z-devv [2025-09-13]: Wants to build a profile where companies reach out to him; however, he's: - not really interested in Machine Learning - Not really interested in being an individual contributor - Not real...
+  - Why: One of the most endorsed comments, signaling broad agreement.
+- likes=47 replies=6 author=@TinyBolts1 [2025-09-13]: coding jesus is an ironic name considering Israeli heritage (got nothing against that)
+  - Why: High reply traction suggests this point shaped follow-up discussion.
+- likes=83 replies=3 author=@dt38679 [2025-09-13]: Love your content but you could really benefit from being more aware of the superiority complex you have on your personal experience in work. This channel is in the context of the quant s...
+  - Why: Strongest technical criticism in the high-signal set.
+- likes=20 replies=5 author=@AnimeGIFfy [2025-09-13]: never understood the faang hype, everything i hear about them is either boring or frustrating.
+  - Why: Representative dominant reaction in the main theme cluster.
+- likes=72 replies=3 author=@pancreasdragonheart9765 [2025-09-13]: I joined a military defense company as my first job, a place with roughly 1 billion lines of code. I did nothing but read the dense design documents and specs engineers write, tracing cod...
+  - Why: Captures the longevity/view-milestone narrative around this video.
+- likes=272 replies=1 author=@rudrashisgorai9378 [2025-09-13]: Amazon killed this person's energy and enthusiasm, sad.
+  - Why: Representative dominant reaction in the main theme cluster.
+- likes=129 replies=2 author=@OhsoLosoo [2025-09-13]: This is probably the most realistic employee I've ever seen from one of these larger companies. They are picked because they can solve problems on the fly. They don't even care about if t...
+  - Why: Key minority pushback that creates visible split signal.
+- likes=19 replies=2 author=@tesm_jsf [2025-09-13]: This guys sounds like he doesn't like anything lol
+  - Why: Representative dominant reaction in the main theme cluster.
+- likes=61 replies=1 author=@nullptr. [2025-09-13]: Honestly this caller doesn't sound cracked at all
+  - Why: Representative dominant reaction in the main theme cluster.
+- likes=10 replies=3 author=@Xeros-Nexus-n9n [2025-09-13]: How do these people get in Amazon...
+  - Why: Representative dominant reaction in the main theme cluster.

@@ -1,270 +1,104 @@
-# YouTube Harvester 🎬
+# YouTube Harvester
 
-<img src="./asset/banner.png">
+A lean CLI that turns one YouTube video into one discussion-ready `.txt` file.
 
-(First project 🤞🏻😬)
+## What it does
 
-Scrappy little Python tool to do the grunt work. It pulls transcripts, comments, metadata from Youtube. 😌
+For a single video URL or video ID, it always fetches:
+- metadata
+- transcript (with timestamps preserved)
+- threaded comments
 
-## What It Does 🔧
+Then it produces one text report with:
+- a short thesis at the top
+- timestamped transcript chunks (`[00:00-00:42] ...`)
+- audience themes
+- controversial points (side A / side B)
+- interesting outliers
+- high-signal comments ranked by a thread signal score
 
-- 📺 **Metadata** — video title, channel, views, upload date, tags
-- 📜 **Transcript** — official or auto-captions, stripped of timecodes
-- 💬 **Comments** — top-liked, threaded with replies
-- 🧠 **Analysis** — sentiment scores & keyword extraction
-- 📁 **Formats** — save as `.txt`, `.json`, or `.csv` (flat comments for Sheets/Pandas)
-- ⚡ **Comments-Only Mode** — skip metadata/transcript for 5-10x faster harvesting
-- ✨ **Clean Output** — like counts (e.g., `1.3M`), proper dates, nested replies
-- 🌀 **Progress Bar** — detailed step-by-step progress & parallel bulk processing
-
-<p align=center>
-<img src="./asset/metadata-analysis-transcript.png" width=60%>
-<img src="./asset/comments.png"width=60%>
-</p>
-
----
-
-## Install Me 🛠️
-
-### Step 1: Clone the Repo
-
-```bash
-git clone https://github.com/wheevu/yt-harvester.git
-cd yt-harvester
-```
-
-### Option 1: Install as CLI Tool (Recommended)
+## Install
 
 ```bash
 pip install -e .
-yt-harvester "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 ```
 
-### Option 2: Run Directly
+## Usage
 
 ```bash
-pip install -r requirements.txt
-python yt_harvester.py "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+yt-harvester https://www.youtube.com/watch?v=dQw4w9WgXcQ
+yt-harvester dQw4w9WgXcQ
 ```
 
----
-
-## Use Me 🧠
-
-### Basic (Single Video)
+Optional output path:
 
 ```bash
-yt-harvester https://youtube.com/watch?v=dQw4w9WgXcQ
-yt-harvester dQw4w9WgXcQ  # just the ID works too
+yt-harvester dQw4w9WgXcQ -o report.txt
 ```
 
-### Playlist (All Videos)
+If `-o` is omitted, output defaults to:
 
-Paste a playlist URL and it will harvest each video in that playlist:
-
-```bash
-yt-harvester "https://www.youtube.com/playlist?list=PLxxxxxxxxxxxxxxxxxxxx"
+```text
+<video title> [<video_id>].txt
 ```
 
-**Output location:** playlist runs are saved into a directory named after the playlist.
-**Output filenames:** each video is saved using the video title (plus its video id for uniqueness).
+## Report format
 
-### Bulk Processing (Multiple Videos)
+```text
+TITLE
+CHANNEL
+URL
 
-Process multiple videos from a file:
+THESIS
+- ...
 
-```bash
-yt-harvester --bulk links.txt
+TRANSCRIPT SNAPSHOT
+[00:00-00:42] ...
+
+AUDIENCE THEMES
+1. ...
+
+CONTROVERSIAL POINTS
+- issue
+  - side A
+  - side B
+
+INTERESTING OUTLIERS
+- comment
+  - why it stands out
+
+HIGH-SIGNAL COMMENTS
+- score=... likes=... replies=... author=...: ...
 ```
 
-Create a text file with one YouTube URL per line:
+## Signal scoring
 
-```
-# links.txt
-https://www.youtube.com/watch?v=ZncbtRo7RXs
-https://www.youtube.com/watch?v=Q3K0TOvTOno
-https://youtu.be/g2X2LdJAIpU
-# You can also include playlist URLs; they will be expanded automatically
-# https://www.youtube.com/playlist?list=PLxxxxxxxxxxxxxxxxxxxx
-# Lines starting with # are ignored
-```
+Thread ranking uses a weighted heuristic over:
+- root comment likes
+- reply count
+- total likes across replies
+- unique repliers count
+- text quality floor (very short comments are penalized)
+- optional recency boost when timestamps exist
 
-Save outputs to a specific directory:
+## Project layout
 
-```bash
-yt-harvester --bulk links.txt --bulk-output-dir ./outputs
-yt-harvester --bulk links.txt -f json --bulk-output-dir ./results -c 30
-```
-
-### Options
-
-```bash
--c 10               # Grab 10 top comments only
--f json             # Save as JSON instead of TXT
--f csv              # Flat CSV for Google Sheets / Pandas
--o my_file.txt      # Custom output filename (single video only)
---max-comments 20000  # Pull deeper into the comment pit
---bulk FILE         # Process multiple videos from file
---bulk-output-dir DIR  # Output directory for bulk mode
---comment-sort newest  # Chronological order (default: top)
---comments-only     # Skip metadata/transcript/analysis (fast mode)
---workers N         # Concurrent workers for bulk/playlist jobs
---log-level LEVEL   # DEBUG, INFO, WARNING, ERROR, CRITICAL
+```text
+src/yt_harvester/
+  __main__.py   # one-command orchestration
+  cli.py        # minimal CLI args
+  downloader.py # metadata/transcript/comments fetch
+  pack.py       # chunking, scoring, themes, controversy, outliers, thesis
+  render.py     # one txt renderer
+  utils.py      # shared helpers
 ```
 
-Combine as needed:
+## Dependencies
 
-```bash
-# Single video
-yt-harvester dQw4w9WgXcQ -c 5 -f json -o output.json
+- yt-dlp
+- youtube-transcript-api
 
-# Bulk processing
-yt-harvester --bulk my_videos.txt -c 15 -f json --bulk-output-dir ./downloads
-```
+## Notes
 
-### Fast Dataset Building
-
-For building large comment datasets quickly:
-
-```bash
-# Fastest: comments-only + newest sort + CSV output
-yt-harvester VIDEO_URL --comments-only --comment-sort newest -f csv -c 100
-
-# Bulk harvest for dataset building
-yt-harvester --bulk links.txt --comments-only --comment-sort newest -f csv --max-comments 5000
-```
-
-### Full CLI Reference
-
-```
-positional:
-  url                  YouTube video URL or video ID (not used with --bulk)
-
-options:
-  -h, --help           Show help
-  -c N, --comments N   Top N comments (default: 20)
-  -f {txt,json,csv}    Format (default: txt)
-  --max-comments N     Cap total comments/replies (default: 10000)
-  -o FILE              Custom filename (single video only)
-  --bulk FILE          Process multiple videos from file (one URL per line)
-  --bulk-output-dir DIR  Output directory for bulk mode
-  --comment-sort {top,newest}  Sort by likes or chronological (default: top)
-  --comments-only      Skip metadata/transcript/analysis for speed
-  --workers N          Concurrent workers for bulk/playlist jobs
-  --log-level LEVEL    DEBUG, INFO, WARNING, ERROR, CRITICAL
-```
-
----
-
-## Output Samples 🧾
-
-### Text
-
-```
-====== METADATA ======
-Title: ...
-Channel: ...
-URL: ...
-
-====== TRANSCRIPT ======
-...
-
-====== COMMENTS ======
-@user (likes: 2.2M) [2022-07-22]: This video changed my life
-  ↳ @replier (likes: 2k): Same here 💯
-```
-
-### JSON
-
-```json
-{
-  "metadata": {...},
-  "transcript": ["..."],
-  "comments": [
-    {
-      "author": "@...",
-      "text": "...",
-      "like_count": 12345,
-      "replies": [...]
-    }
-  ]
-}
-```
-
-### CSV (Flat Comments)
-
-```csv
-comment_id,video_id,author,comment_text,like_count,timestamp,is_reply,parent_comment_id
-Ugw123...,dQw4w9WgXcQ,@user,This video changed my life,22000,1658505600,false,
-Ugw456...,dQw4w9WgXcQ,@replier,Same here 💯,2000,1658506000,true,Ugw123...
-```
-
----
-
-## How Comments Are Sorted 🔍
-
-- 🧠 **`--comment-sort top`** (default) — Top N root comments by likes
-- 🕐 **`--comment-sort newest`** — Chronological order, unbiased sample
-- 🪆 Replies under each root, newest first (up to 50 per root)
-
----
-
-## Requirements 📦
-
-- Python 3.8+
-- [`yt-dlp`](https://github.com/yt-dlp/yt-dlp)
-- [`youtube-transcript-api`](https://github.com/jdepoix/youtube-transcript-api)
-- `tqdm` (for progress bars)
-- `textblob` (for sentiment analysis)
-- `pyyaml` (for config)
-
----
-
-## Dev Mode 👨🏻‍💻
-
-```bash
-git clone https://github.com/wheevu/yt-harvester.git
-cd yt-harvester
-pip install -e .
-# Hack on: src/yt_harvester/__main__.py
-```
-
-### Structure
-
-```
-yt_harvester/
-├── pyproject.toml
-├── requirements.txt
-└── src/
-    └── yt_harvester/
-        ├── __init__.py
-        ├── __main__.py
-        ├── cli.py
-        ├── config.py
-        ├── downloader.py
-        ├── processor.py
-        └── utils.py
-```
-
----
-
-## Common Errors & Fixes 😮‍💨
-
-- `ModuleNotFoundError: yt_dlp`
-
-```bash
-pip install yt-dlp
-```
-
-- `ModuleNotFoundError: youtube_transcript_api`
-
-```bash
-pip install youtube-transcript-api
-```
-
-- `command not found: yt-harvester`
-
-```bash
-pip install -e .
-# Make sure your scripts dir is in PATH
-```
+- This version intentionally removes JSON/CSV output, sentiment, keyword extraction, comments-only mode, comment-sort mode, and YAML config.
+- Embeddings-based grouping can be added later without changing the one-input, one-output flow.

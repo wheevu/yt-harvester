@@ -1,5 +1,2 @@
 yt-dlp
 youtube-transcript-api
-tqdm
-textblob
-pyyaml

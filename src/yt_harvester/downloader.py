@@ -1,110 +1,122 @@
 import json
+import re
 import subprocess
-from pathlib import Path
-from typing import List, Dict, Any
 from collections import defaultdict
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
 import yt_dlp
 from youtube_transcript_api import YouTubeTranscriptApi
-from .utils import (
-    merge_fragments,
-    clean_caption_lines,
-    cleanup_sidecar_files,
-    normalise_playlist_url,
-    playlist_id_from_url,
-)
+
+from .utils import cleanup_sidecar_files
 
 OFFICIAL_TRANSCRIPT_LANGS = ["en", "en-US", "en-GB", "en-CA", "en-AU"]
 
-# Type alias for structured comment data
-CommentDict = dict  # {author, text, like_count, timestamp, id, replies}
+TranscriptSegment = Dict[str, Any]
+CommentDict = Dict[str, Any]
 StructuredComments = List[CommentDict]
 
-def extract_playlist_video_urls(playlist_url: str) -> List[str]:
-    """
-    Expand a YouTube playlist URL to a list of per-video watch URLs.
-    Uses yt-dlp's extractor in 'flat' mode for speed.
-    """
-    canonical = normalise_playlist_url(playlist_url) or playlist_url
-    ydl_opts = {
-        "quiet": True,
-        "skip_download": True,
-        # 'in_playlist' keeps entries lightweight but still includes IDs.
-        "extract_flat": "in_playlist",
-        "ignoreerrors": True,
-        "extractor_args": {"youtube": {"player_client": ["default"]}},
-    }
+
+def _compact_whitespace(value: str) -> str:
+    return re.sub(r"\s+", " ", value or "").strip()
+
+
+def _parse_timestamp_seconds(raw: str) -> float:
+    parts = raw.strip().split(":")
+    if len(parts) == 3:
+        hours, minutes, seconds = parts
+        return int(hours) * 3600 + int(minutes) * 60 + float(seconds)
+    if len(parts) == 2:
+        minutes, seconds = parts
+        return int(minutes) * 60 + float(seconds)
+    return float(parts[0])
+
+
+def _parse_time_bounds(line: str) -> Tuple[Optional[float], Optional[float]]:
+    if "-->" not in line:
+        return (None, None)
+
+    left, right = line.split("-->", 1)
+    start_raw = left.strip().replace(",", ".")
+    end_raw = right.strip().split()[0].replace(",", ".")
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(canonical, download=False)
+        start_seconds = _parse_timestamp_seconds(start_raw)
+        end_seconds = _parse_timestamp_seconds(end_raw)
     except Exception:
-        return []
+        return (None, None)
 
-    if not isinstance(info, dict):
-        return []
-
-    entries = info.get("entries")
-    if not isinstance(entries, list) or not entries:
-        return []
-
-    urls: List[str] = []
-    for entry in entries:
-        if not isinstance(entry, dict):
-            continue
-        video_id = entry.get("id") or entry.get("url")
-        if isinstance(video_id, str) and video_id.strip():
-            urls.append(f"https://www.youtube.com/watch?v={video_id.strip()}")
-            continue
-        webpage_url = entry.get("webpage_url")
-        if isinstance(webpage_url, str) and webpage_url.strip():
-            urls.append(webpage_url.strip())
-
-    # De-dupe while preserving order
-    seen = set()
-    unique_urls: List[str] = []
-    for u in urls:
-        if u in seen:
-            continue
-        seen.add(u)
-        unique_urls.append(u)
-    return unique_urls
+    if end_seconds < start_seconds:
+        end_seconds = start_seconds
+    return (start_seconds, end_seconds)
 
 
-def extract_playlist_title_and_video_urls(playlist_url: str) -> tuple[str, str, List[str]]:
-    """
-    Expand a YouTube playlist URL to (playlist_title, playlist_id, [video_watch_urls]).
-    """
-    canonical = normalise_playlist_url(playlist_url) or playlist_url
-    pid = playlist_id_from_url(canonical) or "unknown-playlist"
-    ydl_opts = {
-        "quiet": True,
-        "skip_download": True,
-        "extract_flat": "in_playlist",
-        "ignoreerrors": True,
-        "extractor_args": {"youtube": {"player_client": ["default"]}},
-    }
+def _parse_caption_segments(path: Path) -> List[TranscriptSegment]:
+    html_tag_re = re.compile(r"</?[^>]+>")
+    inline_ts_re = re.compile(r"<\d{2}:\d{2}:\d{2}\.\d{3}>")
+    segments: List[TranscriptSegment] = []
+
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(canonical, download=False)
-    except Exception:
-        return ("(Unknown playlist)", pid, [])
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
 
-    title = "(Unknown playlist)"
-    if isinstance(info, dict):
-        t = info.get("title")
-        if isinstance(t, str) and t.strip():
-            title = t.strip()
+    idx = 0
+    while idx < len(lines):
+        line = lines[idx].strip()
 
-    urls = extract_playlist_video_urls(canonical)
-    return (title, pid, urls)
+        if not line or line.upper() == "WEBVTT" or line.startswith("NOTE"):
+            idx += 1
+            continue
+
+        if line.isdigit() and idx + 1 < len(lines) and "-->" in lines[idx + 1]:
+            idx += 1
+            line = lines[idx].strip()
+
+        start_seconds, end_seconds = _parse_time_bounds(line)
+        if start_seconds is None or end_seconds is None:
+            idx += 1
+            continue
+
+        idx += 1
+        text_lines: List[str] = []
+        while idx < len(lines):
+            current = lines[idx].strip()
+            if not current:
+                break
+            if current.startswith(("Kind:", "Language:", "Style:", "Region:")):
+                idx += 1
+                continue
+            cleaned = html_tag_re.sub("", current)
+            cleaned = inline_ts_re.sub("", cleaned)
+            cleaned = _compact_whitespace(cleaned)
+            if cleaned:
+                text_lines.append(cleaned)
+            idx += 1
+
+        text = _compact_whitespace(" ".join(text_lines))
+        if text and (not segments or segments[-1]["text"] != text):
+            duration = max(end_seconds - start_seconds, 0.0)
+            segments.append(
+                {
+                    "start": float(start_seconds),
+                    "duration": float(duration),
+                    "text": text,
+                }
+            )
+
+        idx += 1
+
+    return segments
 
 
 def fetch_metadata(video_id: str, watch_url: str) -> dict:
-    """Fetch video title and channel via yt-dlp; fall back to placeholders."""
+    """Fetch video metadata via yt-dlp; fall back to placeholders."""
     ydl_opts = {
         "quiet": True,
         "skip_download": True,
         "extractor_args": {"youtube": {"player_client": ["default"]}},
     }
+
     info = {}
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -115,13 +127,11 @@ def fetch_metadata(video_id: str, watch_url: str) -> dict:
     title = info.get("title") if isinstance(info, dict) else None
     channel = info.get("uploader") if isinstance(info, dict) else None
     canonical = info.get("webpage_url") if isinstance(info, dict) else None
-    
-    # Extended metadata
+
     view_count = info.get("view_count") if isinstance(info, dict) else None
     duration = info.get("duration") if isinstance(info, dict) else None
     upload_date = info.get("upload_date") if isinstance(info, dict) else None
     description = info.get("description") if isinstance(info, dict) else None
-    tags = info.get("tags") if isinstance(info, dict) else []
 
     return {
         "Title": title or "(Unknown title)",
@@ -131,19 +141,29 @@ def fetch_metadata(video_id: str, watch_url: str) -> dict:
         "Duration": duration,
         "UploadDate": upload_date,
         "Description": description,
-        "Tags": tags
+        "VideoID": video_id,
     }
 
-def try_official_transcript(video_id: str) -> List[str]:
+
+def try_official_transcript(video_id: str) -> List[TranscriptSegment]:
     try:
         api = YouTubeTranscriptApi()
         transcript = api.fetch(video_id, languages=OFFICIAL_TRANSCRIPT_LANGS)
     except Exception:
         return []
-    return merge_fragments(chunk.text for chunk in transcript)
+
+    segments: List[TranscriptSegment] = []
+    for snippet in transcript:
+        text = _compact_whitespace(getattr(snippet, "text", ""))
+        if not text:
+            continue
+        start = float(getattr(snippet, "start", 0.0) or 0.0)
+        duration = float(getattr(snippet, "duration", 0.0) or 0.0)
+        segments.append({"start": start, "duration": duration, "text": text})
+    return segments
 
 
-def try_auto_captions(video_id: str, watch_url: str) -> List[str]:
+def try_auto_captions(video_id: str, watch_url: str) -> List[TranscriptSegment]:
     output_pattern = f"{video_id}.%(ext)s"
     cmd = [
         "yt-dlp",
@@ -160,25 +180,23 @@ def try_auto_captions(video_id: str, watch_url: str) -> List[str]:
         output_pattern,
         watch_url,
     ]
+
     try:
-        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except FileNotFoundError:
-        return ["(Transcript unavailable: yt-dlp is not installed.)"]
-    except subprocess.CalledProcessError:
+        subprocess.run(
+            cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError, Exception):
         cleanup_sidecar_files(video_id, (".info.json",))
         return []
-    except Exception as exc:
-        cleanup_sidecar_files(video_id, (".info.json",))
-        return [f"(Transcript unavailable: {exc})"]
 
-    caption_files = sorted(Path(".").glob(f"{video_id}*.vtt")) + sorted(Path(".").glob(f"{video_id}*.srt"))
-    fragments: List[str] = []
-    
-    # Only use the first caption file to avoid duplicates from multiple language variants
+    caption_files = sorted(Path(".").glob(f"{video_id}*.vtt")) + sorted(
+        Path(".").glob(f"{video_id}*.srt")
+    )
+
+    segments: List[TranscriptSegment] = []
     if caption_files:
-        fragments.extend(clean_caption_lines(caption_files[0]))
-    
-    # Clean up all caption files
+        segments = _parse_caption_segments(caption_files[0])
+
     for caption_file in caption_files:
         try:
             caption_file.unlink()
@@ -186,12 +204,10 @@ def try_auto_captions(video_id: str, watch_url: str) -> List[str]:
             pass
 
     cleanup_sidecar_files(video_id, (".info.json",))
-    if not fragments:
-        return []
-    return merge_fragments(fragments)
+    return segments
 
 
-def fetch_transcript(video_id: str, watch_url: str) -> List[str]:
+def fetch_transcript(video_id: str, watch_url: str) -> List[TranscriptSegment]:
     official = try_official_transcript(video_id)
     if official:
         return official
@@ -200,41 +216,34 @@ def fetch_transcript(video_id: str, watch_url: str) -> List[str]:
     if auto:
         return auto
 
-    return ["(Transcript unavailable.)"]
+    return []
 
 
 def fetch_comments(
-    video_id: str, 
-    watch_url: str, 
-    max_dl: int = 20000, 
-    top_n: int = 80,
-    comment_sort: str = "top"
+    video_id: str, watch_url: str, max_dl: int = 20000, top_n: int = 120
 ) -> StructuredComments:
     """
-    Fetch comments via yt-dlp and return structured data. Does NOT clean up files - caller must do cleanup.
-    
-    Args:
-        comment_sort: 'top' (most liked) or 'newest' (chronological)
+    Fetch comments via yt-dlp and return threaded root comments with replies.
+    Does not clean up files; caller should clean up sidecar files.
     """
     info_json_path = Path(f"{video_id}.info.json")
-    # max_comments format: MAX_COMMENTS,MAX_PARENTS,MAX_REPLIES_PER_THREAD
-    # - MAX_COMMENTS: max top-level comments to fetch (we fetch more than top_n to have selection)
-    # - MAX_PARENTS: max parent comments for nested replies (all = unlimited)
-    # - MAX_REPLIES_PER_THREAD: max replies per comment thread (100 is generous)
     cmd = [
         "yt-dlp",
         "--skip-download",
         "--write-comments",
         "--write-info-json",
         "--extractor-args",
-        f"youtube:max_comments={max_dl},all,100;comment_sort={comment_sort};player_client=default",
+        f"youtube:max_comments={max_dl},all,100;comment_sort=top;player_client=default",
         "--no-write-playlist-metafiles",
         "-o",
         f"{video_id}.%(ext)s",
         watch_url,
     ]
+
     try:
-        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(
+            cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
     except (FileNotFoundError, subprocess.CalledProcessError, Exception):
         return []
 
@@ -244,7 +253,7 @@ def fetch_comments(
     try:
         with info_json_path.open("r", encoding="utf-8") as handle:
             info_data = json.load(handle)
-            data = info_data.get("comments", [])
+        data = info_data.get("comments", [])
     except Exception:
         return []
 
@@ -260,45 +269,45 @@ def fetch_comments(
         else:
             roots.append(comment)
 
-    def normalise_likes(value) -> int:
+    def normalise_likes(value: Any) -> int:
         if isinstance(value, int):
             return max(value, 0)
         if isinstance(value, str) and value.isdigit():
             return int(value)
         return 0
 
-    # Sort root comments based on comment_sort parameter
-    if comment_sort == "newest":
-        # Sort by timestamp (newest first) to preserve chronological order
-        roots.sort(key=lambda c: c.get("timestamp", 0), reverse=True)
-    else:
-        # Default: sort by like count (most liked first)
-        roots.sort(key=lambda c: normalise_likes(c.get("like_count")), reverse=True)
-    top_roots = roots[:top_n]
-    
-    # Build structured comment data
-    structured_comments = []
-    for root in top_roots:
+    roots.sort(key=lambda c: normalise_likes(c.get("like_count")), reverse=True)
+
+    structured_comments: StructuredComments = []
+    for root in roots[:top_n]:
         root_replies = children.get(root.get("id"), [])
-        replies_sorted = sorted(root_replies, key=lambda r: r.get("timestamp", 0), reverse=True)
-        limited_replies = replies_sorted[:50]
-        
-        structured_comments.append({
-            "author": root.get("author", ""),
-            "text": root.get("text", ""),
-            "like_count": normalise_likes(root.get("like_count")),
-            "timestamp": root.get("timestamp"),
-            "id": root.get("id"),
-            "replies": [
-                {
-                    "author": reply.get("author", ""),
-                    "text": reply.get("text", ""),
-                    "like_count": normalise_likes(reply.get("like_count")),
-                    "timestamp": reply.get("timestamp"),
-                    "id": reply.get("id"),
-                }
-                for reply in limited_replies
-            ]
-        })
-    
+        replies_sorted = sorted(
+            root_replies,
+            key=lambda r: (
+                normalise_likes(r.get("like_count")),
+                r.get("timestamp", 0),
+            ),
+            reverse=True,
+        )
+
+        structured_comments.append(
+            {
+                "author": root.get("author", ""),
+                "text": root.get("text", ""),
+                "like_count": normalise_likes(root.get("like_count")),
+                "timestamp": root.get("timestamp"),
+                "id": root.get("id"),
+                "replies": [
+                    {
+                        "author": reply.get("author", ""),
+                        "text": reply.get("text", ""),
+                        "like_count": normalise_likes(reply.get("like_count")),
+                        "timestamp": reply.get("timestamp"),
+                        "id": reply.get("id"),
+                    }
+                    for reply in replies_sorted[:100]
+                ],
+            }
+        )
+
     return structured_comments

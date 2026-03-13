@@ -1,3 +1,3 @@
-"""YouTube Harvester - Extract transcripts and comments from YouTube videos."""
+"""YouTube Harvester - build single-file YouTube discussion packs."""
 
 __version__ = "0.1.0"
