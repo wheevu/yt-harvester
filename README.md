@@ -39,7 +39,7 @@ yt-harvester dQw4w9WgXcQ -o report.txt
 If `-o` is omitted, output defaults to:
 
 ```text
-<video title> [<video_id>].txt
+output/<video title> [<video_id>].txt
 ```
 
 ## Report format

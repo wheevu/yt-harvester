@@ -5,7 +5,15 @@ from .cli import parse_args
 from .downloader import fetch_comments, fetch_metadata, fetch_transcript
 from .pack import build_video_discussion_pack
 from .render import render_discussion_pack
-from .utils import build_watch_url, cleanup_sidecar_files, safe_path_name, video_id_from_url
+from .utils import (
+    build_watch_url,
+    cleanup_sidecar_files,
+    safe_path_name,
+    video_id_from_url,
+)
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "output"
 
 
 def _resolve_output_path(requested_output: str, title: str, video_id: str) -> Path:
@@ -16,7 +24,7 @@ def _resolve_output_path(requested_output: str, title: str, video_id: str) -> Pa
         return output_path
 
     safe_title = safe_path_name(title or video_id)
-    return Path(f"{safe_title} [{video_id}].txt")
+    return DEFAULT_OUTPUT_DIR / f"{safe_title} [{video_id}].txt"
 
 
 def _cleanup_transient_files(video_id: str) -> None:
@@ -64,9 +72,13 @@ def main() -> int:
         threaded_comments = fetch_comments(video_id, watch_url)
 
         print("Packing discussion signal...")
-        pack = build_video_discussion_pack(metadata, transcript_segments, threaded_comments)
+        pack = build_video_discussion_pack(
+            metadata, transcript_segments, threaded_comments
+        )
 
-        output_path = _resolve_output_path(args.output, metadata.get("Title", video_id), video_id)
+        output_path = _resolve_output_path(
+            args.output, metadata.get("Title", video_id), video_id
+        )
         report_text = render_discussion_pack(pack)
 
         output_path.parent.mkdir(parents=True, exist_ok=True)

@@ -10,7 +10,7 @@ def parse_args():
         "-o",
         "--output",
         metavar="FILE",
-        help="Optional output .txt path (default: <title> [<id>].txt).",
+        help="Optional output .txt path (default: output/<title> [<id>].txt).",
     )
 
     return parser.parse_args()
