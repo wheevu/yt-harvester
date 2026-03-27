@@ -1,7 +1,6 @@
-from typing import List
+from typing import Any, Dict, List
 
-from .pack import VideoDiscussionPack, comment_lookup
-from .utils import format_like_count, format_timestamp
+from .utils import compact_whitespace, format_like_count, format_timestamp
 
 
 def _timecode(seconds: float) -> str:
@@ -15,141 +14,135 @@ def _timecode(seconds: float) -> str:
 
 
 def _normalise_author(raw_author: str) -> str:
-    value = (raw_author or "").strip()
+    value = compact_whitespace(raw_author)
     if not value:
         return "@Unknown"
     return value if value.startswith("@") else f"@{value}"
 
 
-def _single_line(value: str, max_len: int = 260) -> str:
-    text = " ".join((value or "").split())
+def _single_line(value: str, max_len: int = 500) -> str:
+    text = compact_whitespace(value)
     if len(text) <= max_len:
         return text
     return f"{text[: max_len - 3].rstrip()}..."
 
 
 def _format_upload_date(raw_date: str) -> str:
-    value = (raw_date or "").strip()
+    value = compact_whitespace(raw_date)
     if len(value) == 8 and value.isdigit():
         return f"{value[:4]}-{value[4:6]}-{value[6:8]}"
     return value or "(Unknown date)"
 
 
-def render_discussion_pack(pack: VideoDiscussionPack) -> str:
-    lookup = comment_lookup(pack.scored_comments)
-    metadata = pack.metadata
+def _format_duration(duration_seconds: Any) -> str:
+    if not isinstance(duration_seconds, (int, float)) or duration_seconds < 0:
+        return "(Unknown duration)"
+    total = int(duration_seconds)
+    hours = total // 3600
+    minutes = (total % 3600) // 60
+    seconds = total % 60
+    if hours > 0:
+        return f"{hours}h {minutes}m {seconds}s"
+    if minutes > 0:
+        return f"{minutes}m {seconds}s"
+    return f"{seconds}s"
 
-    lines: List[str] = []
 
-    lines.append("TITLE")
-    lines.append(str(metadata.get("Title") or "(Unknown title)"))
-    lines.append("")
-    lines.append("CHANNEL")
-    lines.append(str(metadata.get("Channel") or "(Unknown channel)"))
-    lines.append("")
-    lines.append("DATE")
-    lines.append(_format_upload_date(str(metadata.get("UploadDate") or "")))
-    lines.append("")
-    lines.append("URL")
-    lines.append(str(metadata.get("URL") or ""))
-    lines.append("")
+def _render_metadata(lines: List[str], metadata: Dict[str, Any]) -> None:
+    lines.append("METADATA")
+    lines.append(f"Title: {metadata.get('Title') or '(Unknown title)'}")
+    lines.append(f"Channel: {metadata.get('Channel') or '(Unknown channel)'}")
+    lines.append(f"Date: {_format_upload_date(str(metadata.get('UploadDate') or ''))}")
+    lines.append(f"URL: {metadata.get('URL') or ''}")
 
-    lines.append("VIDEO CORE")
-    if pack.thesis:
-        for bullet in pack.thesis[:4]:
-            lines.append(f"- {bullet}")
+    view_count = metadata.get("ViewCount")
+    if isinstance(view_count, int) and view_count >= 0:
+        lines.append(f"Views: {view_count:,}")
     else:
-        lines.append("- No strong core signals were detected from transcript/comments.")
+        lines.append("Views: (Unknown)")
+
+    lines.append(f"Duration: {_format_duration(metadata.get('Duration'))}")
+    lines.append(f"Video ID: {metadata.get('VideoID') or '(Unknown id)'}")
     lines.append("")
 
-    lines.append("FULL TIMESTAMPED TRANSCRIPT")
-    if pack.transcript_chunks:
-        for chunk in pack.transcript_chunks:
-            start_code = _timecode(chunk.start_seconds)
-            end_code = _timecode(chunk.end_seconds)
-            lines.append(
-                f"- [{start_code}-{end_code}] {_single_line(chunk.text, max_len=600)}"
-            )
-    else:
+
+def _render_transcript(
+    lines: List[str], transcript_segments: List[Dict[str, Any]]
+) -> None:
+    lines.append("TIMESTAMPED TRANSCRIPT")
+    if not transcript_segments:
         lines.append("(Transcript unavailable.)")
-    lines.append("")
-
-    lines.append("AUDIENCE READ")
-    if pack.audience_read:
-        for bullet in pack.audience_read:
-            lines.append(f"- {bullet}")
-    else:
-        lines.append("- Audience reaction could not be characterized.")
-    lines.append("")
-
-    lines.append("MAIN COMMENT THEMES")
-    if pack.theme_clusters:
-        for index, theme in enumerate(pack.theme_clusters[:6], start=1):
-            lines.append(f"{index}. {theme.name}")
-            lines.append(f"   - {theme.interpretation}")
-
-            representative_comments = [
-                lookup[comment_id]
-                for comment_id in theme.representative_comment_ids
-                if comment_id in lookup
-            ][:4]
-
-            for comment in representative_comments:
-                lines.append(
-                    f"   - {_normalise_author(comment.author)}: {_single_line(comment.text, max_len=200)}"
-                )
-            lines.append("")
-    else:
-        lines.append("(No clear themes detected from available comments.)")
         lines.append("")
+        return
 
-    lines.append("CONTROVERSY / SPLIT")
-    if pack.controversies:
-        for controversy in pack.controversies:
-            lines.append(f"- {controversy.issue} ({controversy.level})")
-            lines.append(f"  - {controversy.summary}")
-            for comment_id in controversy.representative_comment_ids:
-                comment = lookup.get(comment_id)
-                if not comment:
-                    continue
-                lines.append(
-                    f"  - {_normalise_author(comment.author)}: {_single_line(comment.text, max_len=180)}"
-                )
-    else:
-        lines.append(
-            "- Audience is mostly aligned; no meaningful split surfaced in top discussion threads."
-        )
+    # Render segment-by-segment to preserve timestamp fidelity for downstream LLM use.
+    sorted_segments = sorted(
+        transcript_segments,
+        key=lambda seg: float(seg.get("start", 0.0) or 0.0),
+    )
+
+    for segment in sorted_segments:
+        start = float(segment.get("start", 0.0) or 0.0)
+        duration = float(segment.get("duration", 0.0) or 0.0)
+        end = max(start + duration, start)
+        text = _single_line(str(segment.get("text") or ""), max_len=850)
+        if not text:
+            continue
+        lines.append(f"- [{_timecode(start)}-{_timecode(end)}] {text}")
+
     lines.append("")
 
-    lines.append("INTERESTING OUTLIERS")
-    if pack.outliers:
-        for outlier in pack.outliers:
-            comment = lookup.get(outlier.comment_id)
-            if not comment:
-                continue
-            lines.append(
-                f"- {_normalise_author(comment.author)}: {_single_line(comment.text, max_len=210)}"
-            )
-            lines.append(f"  - Why: {outlier.reason}")
-    else:
-        lines.append("(No high-signal outliers detected.)")
-    lines.append("")
 
-    lines.append("TOP COMMENTS")
-    if pack.scored_comments:
-        for comment in pack.scored_comments[:12]:
-            when = format_timestamp(comment.timestamp)
-            time_label = f" [{when}]" if when else ""
-            lines.append(
-                "- "
-                f"likes={format_like_count(comment.like_count)} "
-                f"replies={comment.reply_count} "
-                f"author={_normalise_author(comment.author)}{time_label}: "
-                f"{_single_line(comment.text, max_len=190)}"
-            )
-            why = comment.why_it_matters or "Relevant signal in the discussion."
-            lines.append(f"  - Why: {why}")
-    else:
+def _render_comments(lines: List[str], comments: List[Dict[str, Any]]) -> None:
+    lines.append("COMMENTS")
+    if not comments:
         lines.append("(No comments found.)")
+        lines.append("")
+        return
 
+    # Render retained comment threads directly; no summarization layer by design.
+    for root in comments:
+        root_text = _single_line(str(root.get("text") or ""), max_len=850)
+        if not root_text:
+            continue
+
+        root_likes = format_like_count(int(root.get("like_count") or 0))
+        root_author = _normalise_author(str(root.get("author") or ""))
+        root_when = format_timestamp(root.get("timestamp"))
+        root_time = f" [{root_when}]" if root_when else ""
+        replies = (
+            root.get("replies", []) if isinstance(root.get("replies"), list) else []
+        )
+
+        lines.append(
+            "- "
+            f"likes={root_likes} replies={len(replies)} "
+            f"author={root_author}{root_time}: {root_text}"
+        )
+
+        for reply in replies:
+            reply_text = _single_line(str(reply.get("text") or ""), max_len=700)
+            if not reply_text:
+                continue
+            reply_likes = format_like_count(int(reply.get("like_count") or 0))
+            reply_author = _normalise_author(str(reply.get("author") or ""))
+            reply_when = format_timestamp(reply.get("timestamp"))
+            reply_time = f" [{reply_when}]" if reply_when else ""
+            lines.append(
+                "  - "
+                f"reply likes={reply_likes} author={reply_author}{reply_time}: {reply_text}"
+            )
+
+    lines.append("")
+
+
+def render_report(
+    metadata: Dict[str, Any],
+    transcript_segments: List[Dict[str, Any]],
+    comments: List[Dict[str, Any]],
+) -> str:
+    lines: List[str] = []
+    _render_metadata(lines, metadata)
+    _render_transcript(lines, transcript_segments)
+    _render_comments(lines, comments)
     return "\n".join(lines).strip() + "\n"

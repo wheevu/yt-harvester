@@ -1,8 +1,6 @@
 import html
 import re
 from datetime import datetime
-from pathlib import Path
-from typing import Iterable
 from urllib.parse import parse_qs, urlparse
 
 VIDEO_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}$")
@@ -10,12 +8,16 @@ _INVALID_PATH_CHARS_RE = re.compile(r'[\\/:*?"<>|\x00-\x1f]+')
 _WHITESPACE_RE = re.compile(r"\s+")
 
 
+def compact_whitespace(value: str) -> str:
+    return _WHITESPACE_RE.sub(" ", value or "").strip()
+
+
 def safe_path_name(value: str, max_len: int = 120) -> str:
     """Convert a title into a filesystem-safe path segment."""
-    text = (value or "").strip()
+    text = compact_whitespace(value)
     text = html.unescape(text)
     text = _INVALID_PATH_CHARS_RE.sub(" ", text)
-    text = _WHITESPACE_RE.sub(" ", text).strip()
+    text = compact_whitespace(text)
     text = text.strip(". ").strip()
 
     if not text:
@@ -67,16 +69,6 @@ def video_id_from_url(value: str) -> str:
 
 def build_watch_url(video_id: str) -> str:
     return f"https://www.youtube.com/watch?v={video_id}"
-
-
-def cleanup_sidecar_files(video_id: str, suffixes: Iterable[str]) -> None:
-    for suffix in suffixes:
-        candidate = Path(f"{video_id}{suffix}")
-        if candidate.exists():
-            try:
-                candidate.unlink()
-            except OSError:
-                pass
 
 
 def format_like_count(count: int) -> str:
