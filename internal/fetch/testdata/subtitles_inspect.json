@@ -1,0 +1,16 @@
+{
+  "subtitles": {
+    "en": [
+      {"ext": "vtt", "url": "https://example.com/manual-en.vtt"}
+    ],
+    "fr": [
+      {"ext": "vtt", "url": "https://example.com/manual-fr.vtt"}
+    ]
+  },
+  "automatic_captions": {
+    "en-US": [
+      {"ext": "json3", "url": "https://example.com/auto-en-us.json3"},
+      {"ext": "vtt", "url": "https://example.com/auto-en-us.vtt"}
+    ]
+  }
+}

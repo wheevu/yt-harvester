@@ -1,0 +1,18 @@
+METADATA
+Title: Example Title
+Channel: Example Channel
+Date: 2026-01-02
+URL: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+Views: 1,234,567
+Duration: 3m 33s
+Video ID: dQw4w9WgXcQ
+
+TIMESTAMPED TRANSCRIPT
+- [00:01-00:03] First line
+- [00:03-00:07] Second line
+
+COMMENTS
+- @Alice [2026-01-03] · 12.3k likes
+  Root comment
+  └─ @Bob [2026-01-04] · 56 likes
+     Reply one

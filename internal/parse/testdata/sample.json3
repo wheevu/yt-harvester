@@ -1,0 +1,39 @@
+{
+  "events": [
+    {
+      "tStartMs": 160,
+      "dDurationMs": 4800,
+      "segs": [{"utf8": "So, in the state of the job market, um,"}]
+    },
+    {
+      "tStartMs": 2550,
+      "dDurationMs": 2410,
+      "segs": [{"utf8": "\n"}]
+    },
+    {
+      "tStartMs": 2560,
+      "dDurationMs": 5120,
+      "segs": [{"utf8": "I know whatever I'm going to say is"}]
+    },
+    {
+      "tStartMs": 4960,
+      "dDurationMs": 4320,
+      "segs": [{"utf8": "going to sound self-serving, but um."}]
+    },
+    {
+      "tStartMs": 9280,
+      "dDurationMs": 3920,
+      "segs": [{"utf8": ">> everybody, it's CJ with getcrack.io, and"}]
+    },
+    {
+      "tStartMs": 11759,
+      "dDurationMs": 4401,
+      "segs": [{"utf8": "today I have the pleasure of interviewing Vive."}]
+    },
+    {
+      "tStartMs": 31000,
+      "dDurationMs": 3000,
+      "segs": [{"utf8": "Thanks for inviting me to the pod."}]
+    }
+  ]
+}
