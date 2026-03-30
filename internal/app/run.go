@@ -57,8 +57,14 @@ func Run(ctx context.Context, opts cli.Options, progress func(string)) (string, 
 		return "", ctx.Err()
 	}
 
-	_ = transcriptErr
-	_ = metadataErr
+	if progress != nil {
+		if transcriptErr != nil && len(transcript) == 0 {
+			progress("Transcript unavailable: " + transcriptErr.Error())
+		}
+		if metadataErr != nil && metadata.Title == "(Unknown title)" && len(comments) == 0 {
+			progress("Metadata/comments unavailable: " + metadataErr.Error())
+		}
+	}
 
 	if progress != nil {
 		progress("Rendering report...")

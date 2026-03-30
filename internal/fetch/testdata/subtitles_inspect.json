@@ -1,7 +1,8 @@
 {
   "subtitles": {
     "en": [
-      {"ext": "vtt", "url": "https://example.com/manual-en.vtt"}
+      {"ext": "vtt", "url": "https://example.com/manual-en.vtt"},
+      {"ext": "srt", "url": "https://example.com/manual-en.srt"}
     ],
     "fr": [
       {"ext": "vtt", "url": "https://example.com/manual-fr.vtt"}

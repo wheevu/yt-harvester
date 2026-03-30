@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/wheevu/yt-harvester/internal/model"
 	"github.com/wheevu/yt-harvester/internal/parse"
@@ -14,10 +15,34 @@ import (
 
 var preferredTranscriptLanguages = []string{"en", "en-US", "en-GB", "en-CA", "en-AU"}
 
+var transcriptRetryBackoffs = []time.Duration{0, 2 * time.Second, 5 * time.Second, 10 * time.Second}
+
+var sleepWithContext = func(ctx context.Context, delay time.Duration) error {
+	if delay <= 0 {
+		return nil
+	}
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
+
 type subtitleSelection struct {
 	Language  string
 	Automatic bool
 	Format    string
+}
+
+func (s subtitleSelection) label() string {
+	typeLabel := "manual"
+	if s.Automatic {
+		typeLabel = "auto"
+	}
+	return fmt.Sprintf("%s/%s/%s", typeLabel, s.Language, s.Format)
 }
 
 func FetchTranscript(ctx context.Context, runner *Runner, videoID, watchURL string) ([]model.TranscriptSegment, error) {
@@ -26,12 +51,51 @@ func FetchTranscript(ctx context.Context, runner *Runner, videoID, watchURL stri
 		return nil, err
 	}
 
-	selection, ok := choosePreferredTrack(info)
-	if !ok {
+	selections := buildTranscriptFallbackChain(info)
+	if len(selections) == 0 {
 		return nil, nil
 	}
 
-	return downloadCaptionTrack(ctx, runner, videoID, watchURL, selection)
+	attemptOutcomes := make([]transcriptAttemptOutcome, 0, len(selections))
+	for _, selection := range selections {
+		// Track metadata can advertise subtitles that still fail to download or parse cleanly.
+		segments, err := retryTranscriptDownload(ctx, selection, func() ([]model.TranscriptSegment, error) {
+			return downloadCaptionTrack(ctx, runner, videoID, watchURL, selection)
+		})
+		if err != nil {
+			attemptOutcomes = append(attemptOutcomes, transcriptAttemptOutcome{selection: selection, err: err})
+			continue
+		}
+		if len(segments) == 0 {
+			attemptOutcomes = append(attemptOutcomes, transcriptAttemptOutcome{selection: selection, empty: true})
+			continue
+		}
+		return segments, nil
+	}
+
+	if len(attemptOutcomes) == 0 {
+		return nil, nil
+	}
+	return nil, summariseTranscriptFailure(attemptOutcomes)
+}
+
+type transcriptAttemptOutcome struct {
+	selection subtitleSelection
+	err       error
+	empty     bool
+}
+
+type transcriptFetchError struct {
+	summary string
+	detail  string
+}
+
+func (e *transcriptFetchError) Error() string {
+	return e.summary
+}
+
+func (e *transcriptFetchError) Detail() string {
+	return e.detail
 }
 
 func inspectSubtitleTracks(ctx context.Context, runner *Runner, watchURL string) (*parse.InfoJSON, error) {
@@ -56,50 +120,77 @@ func inspectSubtitleTracks(ctx context.Context, runner *Runner, watchURL string)
 	return info, nil
 }
 
-func choosePreferredTrack(info *parse.InfoJSON) (subtitleSelection, bool) {
+func buildTranscriptFallbackChain(info *parse.InfoJSON) []subtitleSelection {
 	if info == nil {
-		return subtitleSelection{}, false
+		return nil
 	}
 
-	if language, tracks, ok := chooseLanguage(info.Subtitles); ok {
-		// Manual subtitles are preferred because they are usually cleaner than generated captions.
-		return subtitleSelection{Language: language, Automatic: false, Format: chooseSubtitleFormat(tracks, "vtt", "srt")}, true
+	chain := make([]subtitleSelection, 0, 8)
+	seen := make(map[subtitleSelection]struct{})
+
+	appendSelections := func(automatic bool, tracks map[string][]parse.SubtitleTrack, preferredFormats ...string) {
+		for _, candidate := range chooseLanguages(tracks) {
+			formats := chooseSubtitleFormats(candidate.tracks, preferredFormats...)
+			if len(formats) == 0 {
+				continue
+			}
+			for _, format := range formats {
+				selection := subtitleSelection{
+					Language:  candidate.language,
+					Automatic: automatic,
+					Format:    format,
+				}
+				if _, ok := seen[selection]; ok {
+					continue
+				}
+				seen[selection] = struct{}{}
+				chain = append(chain, selection)
+			}
+		}
 	}
-	if language, tracks, ok := chooseLanguage(info.AutomaticCaptions); ok {
-		return subtitleSelection{Language: language, Automatic: true, Format: chooseSubtitleFormat(tracks, "json3", "vtt", "srt")}, true
-	}
-	return subtitleSelection{}, false
+
+	// Manual subtitles are preferred because they are usually cleaner than generated captions.
+	appendSelections(false, info.Subtitles, "vtt", "srt")
+	appendSelections(true, info.AutomaticCaptions, "json3", "vtt", "srt")
+	return chain
 }
 
-func chooseLanguage(tracks map[string][]parse.SubtitleTrack) (string, []parse.SubtitleTrack, bool) {
+type subtitleCandidate struct {
+	language string
+	tracks   []parse.SubtitleTrack
+}
+
+func chooseLanguages(tracks map[string][]parse.SubtitleTrack) []subtitleCandidate {
 	if len(tracks) == 0 {
-		return "", nil, false
+		return nil
 	}
+
+	candidates := make([]subtitleCandidate, 0, len(tracks))
+	seen := make(map[string]struct{}, len(tracks))
 
 	for _, preferred := range preferredTranscriptLanguages {
 		if usableTrackList(tracks[preferred]) {
-			return preferred, tracks[preferred], true
+			candidates = append(candidates, subtitleCandidate{language: preferred, tracks: tracks[preferred]})
+			seen[preferred] = struct{}{}
 		}
 	}
 
-	type fallbackTrack struct {
-		language string
-		tracks   []parse.SubtitleTrack
-	}
-	fallbacks := make([]fallbackTrack, 0, len(tracks))
+	fallbacks := make([]subtitleCandidate, 0, len(tracks))
 	for language, list := range tracks {
-		if usableTrackList(list) && strings.HasPrefix(strings.ToLower(language), "en") {
-			fallbacks = append(fallbacks, fallbackTrack{language: language, tracks: list})
+		if !usableTrackList(list) || !strings.HasPrefix(strings.ToLower(language), "en") {
+			continue
 		}
-	}
-	if len(fallbacks) == 0 {
-		return "", nil, false
+		if _, ok := seen[language]; ok {
+			continue
+		}
+		fallbacks = append(fallbacks, subtitleCandidate{language: language, tracks: list})
 	}
 
 	sort.Slice(fallbacks, func(i, j int) bool {
 		return fallbacks[i].language < fallbacks[j].language
 	})
-	return fallbacks[0].language, fallbacks[0].tracks, true
+
+	return append(candidates, fallbacks...)
 }
 
 func usableTrackList(tracks []parse.SubtitleTrack) bool {
@@ -146,7 +237,131 @@ func downloadCaptionTrack(ctx context.Context, runner *Runner, videoID, watchURL
 	return segments, nil
 }
 
-func chooseSubtitleFormat(tracks []parse.SubtitleTrack, preferred ...string) string {
+func retryTranscriptDownload(
+	ctx context.Context,
+	selection subtitleSelection,
+	attempt func() ([]model.TranscriptSegment, error),
+) ([]model.TranscriptSegment, error) {
+	var lastErr error
+	for attemptIndex, delay := range transcriptRetryBackoffs {
+		if err := sleepWithContext(ctx, delay); err != nil {
+			return nil, err
+		}
+
+		segments, err := attempt()
+		if err == nil {
+			return segments, nil
+		}
+		lastErr = err
+		if !isRetryableTranscriptError(err) || attemptIndex == len(transcriptRetryBackoffs)-1 {
+			break
+		}
+	}
+	return nil, lastErr
+}
+
+func isRetryableTranscriptError(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(err.Error())
+	for _, token := range []string{
+		"429",
+		"too many requests",
+		"timed out",
+		"timeout",
+		"temporary failure",
+		"connection reset",
+		"connection aborted",
+		"tls handshake timeout",
+	} {
+		if strings.Contains(message, token) {
+			return true
+		}
+	}
+	return false
+}
+
+func summariseTranscriptFailure(outcomes []transcriptAttemptOutcome) error {
+	if len(outcomes) == 0 {
+		return nil
+	}
+
+	allRateLimited := true
+	allEmpty := true
+	details := make([]string, 0, len(outcomes))
+	seenAuto := false
+	seenManual := false
+	seenEnglish := false
+
+	for _, outcome := range outcomes {
+		if outcome.selection.Automatic {
+			seenAuto = true
+		} else {
+			seenManual = true
+		}
+		if strings.HasPrefix(strings.ToLower(outcome.selection.Language), "en") {
+			seenEnglish = true
+		}
+
+		if outcome.empty {
+			details = append(details, outcome.selection.label()+": parsed empty transcript")
+			allRateLimited = false
+			continue
+		}
+
+		details = append(details, outcome.selection.label()+": "+outcome.err.Error())
+		allEmpty = false
+		if !isRateLimitTranscriptError(outcome.err) {
+			allRateLimited = false
+		}
+	}
+
+	tried := describeTranscriptTargets(seenManual, seenAuto, seenEnglish)
+	if allRateLimited {
+		return &transcriptFetchError{
+			summary: fmt.Sprintf("YouTube rate-limited subtitle downloads (429) after trying %s.", tried),
+			detail:  strings.Join(details, "; "),
+		}
+	}
+	if allEmpty {
+		return &transcriptFetchError{
+			summary: fmt.Sprintf("Transcript tracks were found, but %s parsed empty.", tried),
+			detail:  strings.Join(details, "; "),
+		}
+	}
+	return &transcriptFetchError{
+		summary: fmt.Sprintf("Transcript unavailable after trying %s.", tried),
+		detail:  strings.Join(details, "; "),
+	}
+}
+
+func isRateLimitTranscriptError(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "429") || strings.Contains(message, "too many requests")
+}
+
+func describeTranscriptTargets(seenManual, seenAuto, seenEnglish bool) string {
+	languageLabel := "available transcript tracks"
+	if seenEnglish {
+		languageLabel = "English transcript tracks"
+	}
+	switch {
+	case seenManual && seenAuto:
+		return languageLabel + " (manual subtitles and auto-captions)"
+	case seenManual:
+		return languageLabel + " (manual subtitles)"
+	case seenAuto:
+		return languageLabel + " (auto-captions)"
+	default:
+		return languageLabel
+	}
+}
+
+func chooseSubtitleFormats(tracks []parse.SubtitleTrack, preferred ...string) []string {
 	available := make(map[string]struct{}, len(tracks))
 	for _, track := range tracks {
 		ext := strings.TrimSpace(strings.ToLower(track.Ext))
@@ -156,20 +371,16 @@ func chooseSubtitleFormat(tracks []parse.SubtitleTrack, preferred ...string) str
 		available[ext] = struct{}{}
 	}
 
+	formats := make([]string, 0, len(available))
+	seen := make(map[string]struct{}, len(available))
 	for _, format := range preferred {
 		if _, ok := available[format]; ok {
-			return format
+			formats = append(formats, format)
+			seen[format] = struct{}{}
 		}
 	}
 
-	for _, track := range tracks {
-		ext := strings.TrimSpace(strings.ToLower(track.Ext))
-		if ext != "" {
-			return ext
-		}
-	}
-
-	return "vtt"
+	return formats
 }
 
 func parseTranscriptFile(path string) ([]model.TranscriptSegment, error) {
