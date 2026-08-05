@@ -19,6 +19,8 @@ A CLI tool that extracts metadata, timestamped transcript and threaded comments.
 Current comment caps:
 - up to `4000` total extracted comments
 - up to `300` root comments
+- up to `2600` replies across retained threads
+- maximum comment depth: `2`
 - up to `12` replies per retained thread
 
 
