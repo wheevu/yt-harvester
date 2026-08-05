@@ -20,24 +20,26 @@ Current comment caps:
 - up to `4000` total extracted comments
 - up to `300` root comments
 - up to `2600` replies across retained threads
-- maximum comment depth: `2`
 - up to `12` replies per retained thread
+- maximum comment depth: `2`
 
 
 ## Install
 
+Prerequisites: [Go 1.24+](https://go.dev/dl/) and `yt-dlp` on your `PATH`.
+
 ```bash
+# Install yt-dlp
 brew install yt-dlp
-go build
-```
 
-Or install directly with Go:
-
-```bash
+# Global install into $GOPATH/bin (use from any terminal)
 go install github.com/wheevu/yt-harvester@latest
+
+# Or from a local clone
+git clone https://github.com/wheevu/yt-harvester && cd yt-harvester && go install .
 ```
-markdown.showPreviewToSidemarkdown.showPreviewToSide
-`yt-dlp` must be available on your `PATH`.
+
+Make sure `$GOPATH/bin` (usually `~/go/bin`) is on your `PATH`.
 
 ## Usage
 
@@ -50,6 +52,12 @@ Optional output path:
 
 ```bash
 yt-harvester dQw4w9WgXcQ -o report.txt
+```
+
+Check version:
+
+```bash
+yt-harvester --version
 ```
 
 If `-o` is omitted, output defaults to:

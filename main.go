@@ -11,6 +11,8 @@ import (
 	"github.com/wheevu/yt-harvester/internal/cli"
 )
 
+const Version = "1.0.0"
+
 func main() {
 	os.Exit(run())
 }
@@ -20,6 +22,10 @@ func run() int {
 	if err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			fmt.Fprint(os.Stdout, cli.Usage())
+			return 0
+		}
+		if errors.Is(err, cli.ErrVersion) {
+			fmt.Fprintf(os.Stdout, "yt-harvester %s\n", Version)
 			return 0
 		}
 

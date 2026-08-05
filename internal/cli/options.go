@@ -1,10 +1,14 @@
 package cli
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"strings"
 )
+
+// ErrVersion is returned by Parse when -v or --version is passed.
+var ErrVersion = errors.New("version requested")
 
 type Options struct {
 	Input  string
@@ -20,6 +24,8 @@ func Parse(args []string) (Options, error) {
 		switch {
 		case arg == "-h" || arg == "--help":
 			return Options{}, flag.ErrHelp
+		case arg == "-v" || arg == "--version":
+			return Options{}, ErrVersion
 		case arg == "-o" || arg == "--output":
 			if index+1 >= len(args) {
 				return Options{}, fmt.Errorf("missing value for %s", arg)

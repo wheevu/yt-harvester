@@ -4,10 +4,6 @@
 *.test
 coverage.out
 
-# Legacy Python caches
-__pycache__/
-*.pyc
-
 # IDE
 .vscode/
 .idea/
@@ -15,8 +11,7 @@ __pycache__/
 *.swo
 *~
 
-# Output files (test outputs)
-!test_links.txt
+# yt-dlp temp files (safety net)
 *.json
 !internal/**/*.json
 
@@ -32,9 +27,6 @@ Thumbs.db
 *.webm
 *.mp4
 *.m4a
-
-# Build artifacts
-build/
 
 # Output directory
 output/
