@@ -29,3 +29,13 @@ func TestParseCaptionFile(t *testing.T) {
 		t.Fatalf("got last text %q", segments[4].Text)
 	}
 }
+
+func TestParseCaptionData(t *testing.T) {
+	segments := ParseCaptionData([]byte("WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nHello from bytes\n"))
+	if len(segments) != 1 {
+		t.Fatalf("got %d segments", len(segments))
+	}
+	if segments[0].Text != "Hello from bytes" {
+		t.Fatalf("got text %q", segments[0].Text)
+	}
+}

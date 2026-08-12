@@ -42,17 +42,32 @@ func FetchMetadataAndComments(ctx context.Context, runner *Runner, videoID, watc
 
 	// yt-dlp sidecars vary across extractors, so the whole run stays inside one temp directory.
 	if err := runner.Run(ctx, dir, args...); err != nil {
-		return metadata, nil, err
+		return recoverMetadataAfterFailure(ctx, runner, videoID, watchURL, metadata, err)
 	}
 
 	info, err := loadInfoJSONFromDir(dir, videoID)
 	if err != nil {
-		return metadata, nil, err
+		return recoverMetadataAfterFailure(ctx, runner, videoID, watchURL, metadata, err)
 	}
 
 	metadata = parse.ExtractMetadata(info, videoID, watchURL)
 	comments := parse.ExtractCommentThreads(info)
 	return metadata, comments, nil
+}
+
+func recoverMetadataAfterFailure(
+	ctx context.Context,
+	runner *Runner,
+	videoID, watchURL string,
+	metadata model.Metadata,
+	originalErr error,
+) (model.Metadata, []model.CommentThread, error) {
+	info, fallbackErr := inspectInfoJSON(ctx, runner, watchURL, false)
+	if fallbackErr != nil {
+		return metadata, nil, fmt.Errorf("%w; metadata fallback: %v", originalErr, fallbackErr)
+	}
+
+	return parse.ExtractMetadata(info, videoID, watchURL), nil, originalErr
 }
 
 func loadInfoJSONFromDir(dir, videoID string) (*parse.InfoJSON, error) {

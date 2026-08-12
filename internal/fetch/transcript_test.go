@@ -3,6 +3,8 @@ package fetch
 import (
 	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,6 +35,9 @@ func TestBuildTranscriptFallbackChainPrefersManualThenAuto(t *testing.T) {
 	}
 	if chain[0].Language != "en" || chain[0].Format != "vtt" {
 		t.Fatalf("got first selection %+v", chain[0])
+	}
+	if chain[0].URL != "https://example.com/manual-en.vtt" {
+		t.Fatalf("got first subtitle URL %q", chain[0].URL)
 	}
 	if chain[1].Automatic || chain[1].Format != "srt" {
 		t.Fatalf("got second selection %+v", chain[1])
@@ -137,6 +142,83 @@ func TestRetryTranscriptDownloadDoesNotRetryPermanentFailure(t *testing.T) {
 	}
 	if attempts != 1 {
 		t.Fatalf("got %d attempts", attempts)
+	}
+}
+
+func TestDownloadCaptionTrackUsesSelectedSubtitleURL(t *testing.T) {
+	requestPath := ""
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestPath = r.URL.Path
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"events": [{
+				"tStartMs": 100,
+				"dDurationMs": 900,
+				"segs": [{"utf8": "Hello from the selected track"}]
+			}]
+		}`))
+	}))
+	defer server.Close()
+
+	segments, err := downloadCaptionTrack(
+		context.Background(),
+		nil,
+		"r-uUUMxt390",
+		"https://www.youtube.com/watch?v=r-uUUMxt390",
+		subtitleSelection{Language: "en", Automatic: true, Format: "json3", URL: server.URL + "/caption.json3"},
+	)
+	if err != nil {
+		t.Fatalf("download caption track: %v", err)
+	}
+	if requestPath != "/caption.json3" {
+		t.Fatalf("got request path %q", requestPath)
+	}
+	if len(segments) != 1 || segments[0].Text != "Hello from the selected track" {
+		t.Fatalf("got segments %+v", segments)
+	}
+}
+
+func TestSubtitleInspectionArgsAvoidFormatChecks(t *testing.T) {
+	args := strings.Join(subtitleInspectionArgs("https://www.youtube.com/watch?v=r-uUUMxt390", "android_vr"), " ")
+	if !strings.Contains(args, "--no-check-formats") {
+		t.Fatalf("expected no format checks, got %q", args)
+	}
+	if !strings.Contains(args, "youtube:player_client=android_vr") {
+		t.Fatalf("expected android_vr client, got %q", args)
+	}
+}
+
+func TestInspectInfoJSONFallsBackAfterClientFailure(t *testing.T) {
+	var calls []string
+	output := func(_ context.Context, _ string, args ...string) ([]byte, error) {
+		call := strings.Join(args, " ")
+		calls = append(calls, call)
+		if strings.Contains(call, "player_client=default") {
+			return nil, errors.New("sign in to confirm you are not a bot")
+		}
+		return []byte(`{
+			"title": "Fallback title",
+			"uploader": "Fallback channel",
+			"automatic_captions": {
+				"en": [{"ext": "json3", "url": "https://example.com/caption.json3"}]
+			}
+		}`), nil
+	}
+
+	info, err := inspectInfoJSONWithOutput(
+		context.Background(),
+		"https://www.youtube.com/watch?v=r-uUUMxt390",
+		output,
+		false,
+	)
+	if err != nil {
+		t.Fatalf("inspect info json: %v", err)
+	}
+	if info.Title != "Fallback title" {
+		t.Fatalf("got title %q", info.Title)
+	}
+	if len(calls) != 2 || !strings.Contains(calls[1], "player_client=android_vr") {
+		t.Fatalf("unexpected client calls: %v", calls)
 	}
 }
 

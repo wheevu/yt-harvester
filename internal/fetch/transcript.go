@@ -3,6 +3,8 @@ package fetch
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -14,6 +16,8 @@ import (
 )
 
 var preferredTranscriptLanguages = []string{"en", "en-US", "en-GB", "en-CA", "en-AU"}
+var transcriptPlayerClients = []string{"default", "android_vr"}
+var transcriptHTTPClient = &http.Client{Timeout: 30 * time.Second}
 
 var transcriptRetryBackoffs = []time.Duration{0, 2 * time.Second, 5 * time.Second, 10 * time.Second}
 
@@ -35,6 +39,7 @@ type subtitleSelection struct {
 	Language  string
 	Automatic bool
 	Format    string
+	URL       string
 }
 
 func (s subtitleSelection) label() string {
@@ -99,25 +104,62 @@ func (e *transcriptFetchError) Detail() string {
 }
 
 func inspectSubtitleTracks(ctx context.Context, runner *Runner, watchURL string) (*parse.InfoJSON, error) {
-	args := []string{
+	return inspectInfoJSON(ctx, runner, watchURL, true)
+}
+
+func inspectInfoJSON(ctx context.Context, runner *Runner, watchURL string, requireTranscript bool) (*parse.InfoJSON, error) {
+	return inspectInfoJSONWithOutput(ctx, watchURL, runner.Output, requireTranscript)
+}
+
+func inspectInfoJSONWithOutput(
+	ctx context.Context,
+	watchURL string,
+	output func(context.Context, string, ...string) ([]byte, error),
+	requireTranscript bool,
+) (*parse.InfoJSON, error) {
+	var lastInfo *parse.InfoJSON
+	var lastErr error
+	triedClients := make([]string, 0, len(transcriptPlayerClients))
+
+	for _, playerClient := range transcriptPlayerClients {
+		triedClients = append(triedClients, playerClient)
+		data, err := output(ctx, "", subtitleInspectionArgs(watchURL, playerClient)...)
+		if err != nil {
+			lastErr = fmt.Errorf("%s client: %w", playerClient, err)
+			continue
+		}
+
+		info, err := parse.DecodeInfoJSON(data)
+		if err != nil {
+			lastErr = fmt.Errorf("%s client: decode subtitle inspection json: %w", playerClient, err)
+			continue
+		}
+		lastInfo = info
+
+		if !requireTranscript || len(buildTranscriptFallbackChain(info)) > 0 {
+			return info, nil
+		}
+	}
+
+	if lastInfo != nil {
+		return lastInfo, nil
+	}
+	if lastErr != nil {
+		return nil, fmt.Errorf("inspect subtitle tracks with yt-dlp using %s: %w", strings.Join(triedClients, ", "), lastErr)
+	}
+	return nil, nil
+}
+
+func subtitleInspectionArgs(watchURL, playerClient string) []string {
+	return []string{
 		"-J",
 		"--quiet",
 		"--no-warnings",
 		"--skip-download",
-		"--extractor-args", "youtube:player_client=default",
+		"--no-check-formats",
+		"--extractor-args", "youtube:player_client=" + playerClient,
 		watchURL,
 	}
-
-	data, err := runner.Output(ctx, "", args...)
-	if err != nil {
-		return nil, err
-	}
-
-	info, err := parse.DecodeInfoJSON(data)
-	if err != nil {
-		return nil, fmt.Errorf("decode subtitle inspection json: %w", err)
-	}
-	return info, nil
 }
 
 func buildTranscriptFallbackChain(info *parse.InfoJSON) []subtitleSelection {
@@ -139,6 +181,7 @@ func buildTranscriptFallbackChain(info *parse.InfoJSON) []subtitleSelection {
 					Language:  candidate.language,
 					Automatic: automatic,
 					Format:    format,
+					URL:       subtitleTrackURL(candidate.tracks, format),
 				}
 				if _, ok := seen[selection]; ok {
 					continue
@@ -198,6 +241,55 @@ func usableTrackList(tracks []parse.SubtitleTrack) bool {
 }
 
 func downloadCaptionTrack(ctx context.Context, runner *Runner, videoID, watchURL string, selection subtitleSelection) ([]model.TranscriptSegment, error) {
+	if strings.TrimSpace(selection.URL) != "" {
+		data, err := fetchSubtitleURL(ctx, selection.URL)
+		if err != nil {
+			return nil, err
+		}
+		return parseTranscriptData(data, selection.Format)
+	}
+
+	return downloadCaptionTrackWithYTDLP(ctx, runner, videoID, watchURL, selection)
+}
+
+func fetchSubtitleURL(ctx context.Context, rawURL string) ([]byte, error) {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create subtitle request: %w", err)
+	}
+
+	response, err := transcriptHTTPClient.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("download subtitle track: %w", err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+		return nil, fmt.Errorf("download subtitle track returned HTTP %d", response.StatusCode)
+	}
+
+	data, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read subtitle track: %w", err)
+	}
+	if len(data) == 0 {
+		return nil, fmt.Errorf("subtitle track response was empty")
+	}
+	return data, nil
+}
+
+func parseTranscriptData(data []byte, format string) ([]model.TranscriptSegment, error) {
+	if strings.EqualFold(strings.TrimSpace(format), "json3") {
+		return parse.ParseJSON3CaptionData(data)
+	}
+	return parse.ParseCaptionData(data), nil
+}
+
+func downloadCaptionTrackWithYTDLP(ctx context.Context, runner *Runner, videoID, watchURL string, selection subtitleSelection) ([]model.TranscriptSegment, error) {
+	if runner == nil {
+		return nil, fmt.Errorf("subtitle track has no URL and yt-dlp runner is unavailable")
+	}
+
 	dir, err := os.MkdirTemp("", "yt-harvester-")
 	if err != nil {
 		return nil, fmt.Errorf("create temp dir: %w", err)
@@ -208,6 +300,7 @@ func downloadCaptionTrack(ctx context.Context, runner *Runner, videoID, watchURL
 		"--quiet",
 		"--no-warnings",
 		"--skip-download",
+		"--no-check-formats",
 		"--sub-format", selection.Format,
 		"--sub-langs", selection.Language,
 		"--no-write-playlist-metafiles",
@@ -274,6 +367,10 @@ func isRetryableTranscriptError(err error) bool {
 		"connection reset",
 		"connection aborted",
 		"tls handshake timeout",
+		"http 500",
+		"http 502",
+		"http 503",
+		"http 504",
 	} {
 		if strings.Contains(message, token) {
 			return true
@@ -381,6 +478,15 @@ func chooseSubtitleFormats(tracks []parse.SubtitleTrack, preferred ...string) []
 	}
 
 	return formats
+}
+
+func subtitleTrackURL(tracks []parse.SubtitleTrack, format string) string {
+	for _, track := range tracks {
+		if strings.EqualFold(strings.TrimSpace(track.Ext), format) {
+			return strings.TrimSpace(track.URL)
+		}
+	}
+	return ""
 }
 
 func parseTranscriptFile(path string) ([]model.TranscriptSegment, error) {

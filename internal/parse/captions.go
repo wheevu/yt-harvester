@@ -22,7 +22,10 @@ func ParseCaptionFile(path string) ([]model.TranscriptSegment, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read caption file: %w", err)
 	}
+	return ParseCaptionData(data), nil
+}
 
+func ParseCaptionData(data []byte) []model.TranscriptSegment {
 	contents := strings.ReplaceAll(string(data), "\r\n", "\n")
 	lines := strings.Split(contents, "\n")
 	segments := make([]model.TranscriptSegment, 0)
@@ -86,7 +89,7 @@ func ParseCaptionFile(path string) ([]model.TranscriptSegment, error) {
 		index++
 	}
 
-	return segments, nil
+	return segments
 }
 
 func parseTimeBounds(line string) (float64, float64, bool) {
