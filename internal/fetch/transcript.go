@@ -13,6 +13,7 @@ import (
 
 	"github.com/wheevu/yt-harvester/internal/model"
 	"github.com/wheevu/yt-harvester/internal/parse"
+	"github.com/wheevu/yt-harvester/internal/util"
 )
 
 var preferredTranscriptLanguages = []string{"en", "en-US", "en-GB", "en-CA", "en-AU"}
@@ -109,6 +110,24 @@ func inspectSubtitleTracks(ctx context.Context, runner *Runner, watchURL string)
 
 func inspectInfoJSON(ctx context.Context, runner *Runner, watchURL string, requireTranscript bool) (*parse.InfoJSON, error) {
 	return inspectInfoJSONWithOutput(ctx, watchURL, runner.Output, requireTranscript)
+}
+
+// inspectInfoJSONForSource inspects a page with yt-dlp. YouTube needs the
+// player-client fallback chain for subtitle tracks; Instagram exposes no
+// caption tracks, so a single plain dump is enough.
+func inspectInfoJSONForSource(ctx context.Context, runner *Runner, pageURL string, source util.Source, requireTranscript bool) (*parse.InfoJSON, error) {
+	if source == util.SourceInstagram {
+		data, err := runner.Output(ctx, "", "--dump-single-json", "--quiet", "--no-warnings", "--skip-download", pageURL)
+		if err != nil {
+			return nil, fmt.Errorf("inspect instagram page with yt-dlp: %w", err)
+		}
+		info, err := parse.DecodeInfoJSON(data)
+		if err != nil {
+			return nil, fmt.Errorf("decode instagram info json: %w", err)
+		}
+		return info, nil
+	}
+	return inspectInfoJSON(ctx, runner, pageURL, requireTranscript)
 }
 
 func inspectInfoJSONWithOutput(

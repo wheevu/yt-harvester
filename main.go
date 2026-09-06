@@ -11,7 +11,7 @@ import (
 	"github.com/wheevu/yt-harvester/internal/cli"
 )
 
-const Version = "1.0.0"
+const Version = "1.1.0"
 
 func main() {
 	os.Exit(run())

@@ -27,6 +27,7 @@ Current comment caps:
 ## Install
 
 Prerequisites: [Go 1.24+](https://go.dev/dl/) and `yt-dlp` on your `PATH`.
+Instagram reels also need `ffmpeg` and `whisper-cli` on your `PATH`, plus a whisper.cpp model (see Transcript below).
 
 ```bash
 # Install yt-dlp
@@ -46,6 +47,24 @@ Make sure `$GOPATH/bin` (usually `~/go/bin`) is on your `PATH`.
 ```bash
 yt-harvester https://www.youtube.com/watch?v=dQw4w9WgXcQ
 yt-harvester dQw4w9WgXcQ
+yt-harvester https://www.instagram.com/reel/DbH3L50RaBS/
+```
+
+Instagram reels render the same report.
+The transcript is transcribed locally, so install the transcriber and fetch a model once:
+
+```bash
+brew install yt-dlp ffmpeg whisper-cpp
+mkdir -p ~/.cache/yt-harvester
+curl -sSL -o ~/.cache/yt-harvester/ggml-base.en.bin \
+  https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin
+```
+
+If Instagram asks for a login, pass cookies from your browser:
+
+```bash
+yt-harvester https://www.instagram.com/reel/DbH3L50RaBS/ --cookies cookies.txt
+yt-harvester https://www.instagram.com/reel/DbH3L50RaBS/ --cookies-from-browser chrome
 ```
 
 Optional output path:
@@ -73,3 +92,7 @@ The tool is yt-dlp-centric. It looks for available subtitle tracks, then chooses
 2. automatic English captions if no manual English track exists
 
 If no transcript is available, the report renders `(Transcript unavailable.)`
+
+Instagram reels expose no caption tracks via yt-dlp, so their audio is downloaded and transcribed locally with `whisper-cli` (language auto-detect).
+The model is resolved from `$WHISPER_MODEL`, then `~/.cache/yt-harvester/`, then the whisper-cpp share directory.
+Instagram info-json also carries no duration, so the report falls back to the downloaded audio length.

@@ -17,36 +17,48 @@ import (
 )
 
 func Run(ctx context.Context, opts cli.Options, progress func(string)) (string, error) {
-	videoID, err := util.ExtractVideoID(opts.Input)
+	media, err := util.DetectMedia(opts.Input)
 	if err != nil {
 		return "", err
 	}
 
-	runner, err := fetch.NewRunner()
+	runner, err := fetch.NewRunnerWithCookies(opts.CookiesFile, opts.CookiesFromBrowser)
 	if err != nil {
 		return "", fmt.Errorf("yt-dlp is required and must be available on PATH")
 	}
 
-	watchURL := util.BuildWatchURL(videoID)
-	metadata := parse.ExtractMetadata(nil, videoID, watchURL)
+	videoID := media.ID
+	pageURL := media.URL
+	metadata := parse.ExtractMetadata(nil, videoID, pageURL)
 	comments := []model.CommentThread(nil)
 	transcript := []model.TranscriptSegment(nil)
 
 	if progress != nil {
-		progress("Fetching transcript + metadata/comments...")
+		if media.Source == util.SourceInstagram {
+			progress("Fetching Instagram reel metadata/comments + transcribing audio...")
+		} else {
+			progress("Fetching transcript + metadata/comments...")
+		}
 	}
 
 	group, groupCtx := errgroup.WithContext(ctx)
 	var transcriptErr error
 	var metadataErr error
+	audioDuration := -1
 
 	group.Go(func() error {
-		transcript, transcriptErr = fetch.FetchTranscript(groupCtx, runner, videoID, watchURL)
+		if media.Source == util.SourceInstagram {
+			var duration int
+			transcript, duration, transcriptErr = fetch.TranscribeInstagramAudio(groupCtx, runner, videoID, pageURL)
+			audioDuration = duration
+			return nil
+		}
+		transcript, transcriptErr = fetch.FetchTranscript(groupCtx, runner, videoID, pageURL)
 		return nil
 	})
 
 	group.Go(func() error {
-		metadata, comments, metadataErr = fetch.FetchMetadataAndComments(groupCtx, runner, videoID, watchURL)
+		metadata, comments, metadataErr = fetch.FetchMetadataAndComments(groupCtx, runner, videoID, pageURL, media.Source)
 		return nil
 	})
 
@@ -64,6 +76,11 @@ func Run(ctx context.Context, opts cli.Options, progress func(string)) (string, 
 		if metadataErr != nil && metadata.Title == "(Unknown title)" && len(comments) == 0 {
 			progress("Metadata/comments unavailable: " + metadataErr.Error())
 		}
+	}
+
+	// Instagram info-json carries no duration; fall back to the audio length.
+	if metadata.Duration < 0 && audioDuration >= 0 {
+		metadata.Duration = audioDuration
 	}
 
 	if progress != nil {

@@ -11,8 +11,10 @@ import (
 var ErrVersion = errors.New("version requested")
 
 type Options struct {
-	Input  string
-	Output string
+	Input              string
+	Output             string
+	CookiesFile        string
+	CookiesFromBrowser string
 }
 
 func Parse(args []string) (Options, error) {
@@ -36,6 +38,22 @@ func Parse(args []string) (Options, error) {
 			opts.Output = strings.TrimSpace(strings.TrimPrefix(arg, "-o="))
 		case strings.HasPrefix(arg, "--output="):
 			opts.Output = strings.TrimSpace(strings.TrimPrefix(arg, "--output="))
+		case arg == "--cookies":
+			if index+1 >= len(args) {
+				return Options{}, fmt.Errorf("missing value for %s", arg)
+			}
+			index++
+			opts.CookiesFile = strings.TrimSpace(args[index])
+		case strings.HasPrefix(arg, "--cookies="):
+			opts.CookiesFile = strings.TrimSpace(strings.TrimPrefix(arg, "--cookies="))
+		case arg == "--cookies-from-browser":
+			if index+1 >= len(args) {
+				return Options{}, fmt.Errorf("missing value for %s", arg)
+			}
+			index++
+			opts.CookiesFromBrowser = strings.TrimSpace(args[index])
+		case strings.HasPrefix(arg, "--cookies-from-browser="):
+			opts.CookiesFromBrowser = strings.TrimSpace(strings.TrimPrefix(arg, "--cookies-from-browser="))
 		case strings.HasPrefix(arg, "-"):
 			return Options{}, fmt.Errorf("unknown flag: %s", arg)
 		case arg != "":
@@ -44,7 +62,7 @@ func Parse(args []string) (Options, error) {
 	}
 
 	if len(positionals) != 1 {
-		return Options{}, fmt.Errorf("expected exactly one YouTube video URL or 11-character video ID")
+		return Options{}, fmt.Errorf("expected exactly one YouTube video URL/ID or Instagram reel URL")
 	}
 
 	opts.Input = strings.TrimSpace(positionals[0])
@@ -56,7 +74,9 @@ func Parse(args []string) (Options, error) {
 }
 
 func Usage() string {
-	return "Usage: yt-harvester [-o FILE] <youtube-url-or-video-id>\n\n" +
+	return "Usage: yt-harvester [-o FILE] [--cookies FILE] [--cookies-from-browser BROWSER] <youtube-url-or-video-id|instagram-reel-url>\n\n" +
 		"Build a single .txt report with metadata, timestamped transcript, and comments\n" +
-		"from one YouTube video URL or ID.\n"
+		"from one YouTube video or Instagram reel.\n" +
+		"Instagram reels are transcribed locally (requires ffmpeg and whisper-cli).\n" +
+		"Use --cookies or --cookies-from-browser when Instagram asks for a login.\n"
 }

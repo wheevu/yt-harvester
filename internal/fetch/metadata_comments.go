@@ -8,10 +8,11 @@ import (
 
 	"github.com/wheevu/yt-harvester/internal/model"
 	"github.com/wheevu/yt-harvester/internal/parse"
+	"github.com/wheevu/yt-harvester/internal/util"
 )
 
-func FetchMetadataAndComments(ctx context.Context, runner *Runner, videoID, watchURL string) (model.Metadata, []model.CommentThread, error) {
-	metadata := parse.ExtractMetadata(nil, videoID, watchURL)
+func FetchMetadataAndComments(ctx context.Context, runner *Runner, videoID, pageURL string, source util.Source) (model.Metadata, []model.CommentThread, error) {
+	metadata := parse.ExtractMetadata(nil, videoID, pageURL)
 
 	dir, err := os.MkdirTemp("", "yt-harvester-")
 	if err != nil {
@@ -28,29 +29,35 @@ func FetchMetadataAndComments(ctx context.Context, runner *Runner, videoID, watc
 		parse.MaxCommentDepth,
 	)
 
+	// The youtube extractor args are YouTube-only; Instagram uses the same
+	// info-json sidecar without them.
 	args := []string{
 		"--quiet",
 		"--no-warnings",
 		"--skip-download",
 		"--write-comments",
 		"--write-info-json",
-		"--extractor-args", extractorArgs,
-		"--no-write-playlist-metafiles",
-		"-o", videoID + ".%(ext)s",
-		watchURL,
 	}
+	if source != util.SourceInstagram {
+		args = append(args, "--extractor-args", extractorArgs)
+	}
+	args = append(args,
+		"--no-write-playlist-metafiles",
+		"-o", videoID+".%(ext)s",
+		pageURL,
+	)
 
 	// yt-dlp sidecars vary across extractors, so the whole run stays inside one temp directory.
 	if err := runner.Run(ctx, dir, args...); err != nil {
-		return recoverMetadataAfterFailure(ctx, runner, videoID, watchURL, metadata, err)
+		return recoverMetadataAfterFailure(ctx, runner, videoID, pageURL, source, metadata, err)
 	}
 
 	info, err := loadInfoJSONFromDir(dir, videoID)
 	if err != nil {
-		return recoverMetadataAfterFailure(ctx, runner, videoID, watchURL, metadata, err)
+		return recoverMetadataAfterFailure(ctx, runner, videoID, pageURL, source, metadata, err)
 	}
 
-	metadata = parse.ExtractMetadata(info, videoID, watchURL)
+	metadata = parse.ExtractMetadata(info, videoID, pageURL)
 	comments := parse.ExtractCommentThreads(info)
 	return metadata, comments, nil
 }
@@ -58,16 +65,17 @@ func FetchMetadataAndComments(ctx context.Context, runner *Runner, videoID, watc
 func recoverMetadataAfterFailure(
 	ctx context.Context,
 	runner *Runner,
-	videoID, watchURL string,
+	videoID, pageURL string,
+	source util.Source,
 	metadata model.Metadata,
 	originalErr error,
 ) (model.Metadata, []model.CommentThread, error) {
-	info, fallbackErr := inspectInfoJSON(ctx, runner, watchURL, false)
+	info, fallbackErr := inspectInfoJSONForSource(ctx, runner, pageURL, source, false)
 	if fallbackErr != nil {
 		return metadata, nil, fmt.Errorf("%w; metadata fallback: %v", originalErr, fallbackErr)
 	}
 
-	return parse.ExtractMetadata(info, videoID, watchURL), nil, originalErr
+	return parse.ExtractMetadata(info, videoID, pageURL), nil, originalErr
 }
 
 func loadInfoJSONFromDir(dir, videoID string) (*parse.InfoJSON, error) {

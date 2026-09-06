@@ -1,6 +1,6 @@
 # YouTube Harvester
 
-A small Go CLI that turns a YouTube video into one readable text report.
+A small Go CLI that turns a YouTube video or Instagram reel into one readable text report.
 
 <p align="center">
   <img src="asset/1.png" width="86%" alt="YouTube Harvester report header and metadata">
@@ -17,6 +17,7 @@ The report keeps video metadata, a timestamped transcript, root comments, and th
 
 Manual English subtitles come first.
 Automatic English captions are the fallback.
+Instagram reels are transcribed locally with whisper-cli.
 If neither exists, the report says so plainly.
 
 [Install, run, and inspect the extraction limits](GUIDE.md).

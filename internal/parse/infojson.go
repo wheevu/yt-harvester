@@ -24,9 +24,11 @@ const (
 type InfoJSON struct {
 	Title             string                     `json:"title"`
 	Uploader          string                     `json:"uploader"`
+	Channel           string                     `json:"channel"`
 	WebpageURL        string                     `json:"webpage_url"`
-	ViewCount         int64                      `json:"view_count"`
-	Duration          int                        `json:"duration"`
+	ViewCount         any                        `json:"view_count"`
+	Duration          any                        `json:"duration"`
+	Timestamp         any                        `json:"timestamp"`
 	UploadDate        string                     `json:"upload_date"`
 	Comments          []InfoComment              `json:"comments"`
 	Subtitles         map[string][]SubtitleTrack `json:"subtitles"`
@@ -75,21 +77,159 @@ func ExtractMetadata(info *InfoJSON, videoID, watchURL string) model.Metadata {
 	if strings.TrimSpace(info.Title) != "" {
 		metadata.Title = info.Title
 	}
-	if strings.TrimSpace(info.Uploader) != "" {
-		metadata.Channel = info.Uploader
+	channel := strings.TrimSpace(info.Channel)
+	if channel == "" {
+		channel = strings.TrimSpace(info.Uploader)
+	}
+	if channel != "" {
+		metadata.Channel = channel
 	}
 	if strings.TrimSpace(info.WebpageURL) != "" {
 		metadata.URL = info.WebpageURL
 	}
-	if info.ViewCount >= 0 {
-		metadata.ViewCount = info.ViewCount
+	if count, ok := normalizeCount(info.ViewCount); ok {
+		metadata.ViewCount = count
 	}
-	if info.Duration >= 0 {
-		metadata.Duration = info.Duration
+	if duration, ok := normalizeDuration(info.Duration); ok {
+		metadata.Duration = duration
 	}
-	metadata.UploadDate = info.UploadDate
+	metadata.UploadDate = normalizeUploadDate(info.UploadDate, info.Timestamp)
 
 	return metadata
+}
+
+// normalizeCount maps view_count values to (count, present). Instagram omits
+// view_count, which must render as unknown rather than zero.
+func normalizeCount(value any) (int64, bool) {
+	switch current := value.(type) {
+	case nil:
+		return 0, false
+	case int:
+		if current < 0 {
+			return 0, false
+		}
+		return int64(current), true
+	case int32:
+		if current < 0 {
+			return 0, false
+		}
+		return int64(current), true
+	case int64:
+		if current < 0 {
+			return 0, false
+		}
+		return current, true
+	case float32:
+		if current < 0 {
+			return 0, false
+		}
+		return int64(current), true
+	case float64:
+		if current < 0 {
+			return 0, false
+		}
+		return int64(current), true
+	case string:
+		cleaned := strings.ReplaceAll(strings.TrimSpace(current), ",", "")
+		if cleaned == "" {
+			return 0, false
+		}
+		parsed, err := strconv.ParseInt(cleaned, 10, 64)
+		if err != nil || parsed < 0 {
+			return 0, false
+		}
+		return parsed, true
+	default:
+		return 0, false
+	}
+}
+
+// normalizeDuration maps duration values (YouTube ints, Instagram null) to
+// whole seconds. Missing durations stay unknown.
+func normalizeDuration(value any) (int, bool) {
+	switch current := value.(type) {
+	case nil:
+		return 0, false
+	case int:
+		if current < 0 {
+			return 0, false
+		}
+		return current, true
+	case int32:
+		if current < 0 {
+			return 0, false
+		}
+		return int(current), true
+	case int64:
+		if current < 0 {
+			return 0, false
+		}
+		return int(current), true
+	case float32:
+		if current < 0 {
+			return 0, false
+		}
+		return int(current), true
+	case float64:
+		if current < 0 {
+			return 0, false
+		}
+		return int(current), true
+	case string:
+		trimmed := strings.TrimSpace(current)
+		if trimmed == "" {
+			return 0, false
+		}
+		if parsed, err := strconv.ParseFloat(trimmed, 64); err == nil && parsed >= 0 {
+			return int(parsed), true
+		}
+		return 0, false
+	default:
+		return 0, false
+	}
+}
+
+// normalizeUploadDate prefers the extractor upload_date (YYYYMMDD) and falls
+// back to the unix timestamp Instagram provides.
+func normalizeUploadDate(uploadDate string, timestamp any) string {
+	if strings.TrimSpace(uploadDate) != "" {
+		return uploadDate
+	}
+	if unix, ok := normalizeTimestamp(timestamp); ok {
+		return time.Unix(unix, 0).UTC().Format("20060102")
+	}
+	return ""
+}
+
+func normalizeTimestamp(value any) (int64, bool) {
+	switch current := value.(type) {
+	case nil:
+		return 0, false
+	case int:
+		return int64(current), true
+	case int32:
+		return int64(current), true
+	case int64:
+		return current, true
+	case float32:
+		return int64(current), true
+	case float64:
+		return int64(current), true
+	case string:
+		trimmed := strings.TrimSpace(current)
+		if trimmed == "" {
+			return 0, false
+		}
+		if unix, err := strconv.ParseInt(trimmed, 10, 64); err == nil {
+			return unix, true
+		}
+		if parsed, err := time.Parse(time.RFC3339, strings.ReplaceAll(trimmed, "Z", "+00:00")); err == nil {
+			return parsed.Unix(), true
+		}
+		return 0, false
+	default:
+		return 0, false
+	}
 }
 
 func ExtractCommentThreads(info *InfoJSON) []model.CommentThread {
